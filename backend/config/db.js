@@ -6,27 +6,31 @@ export const connectToDatabase = async () => {
 			throw new Error("MONGO_URI environment variable not defined");
 		}
 
+		if (!process.env.DB_NAME) {
+			throw new Error("DB_NAME environment variable not defined");
+		}
+
 		if (mongoose.connection.readyState === 1) {
-			console.log("Already connected to MongoDB");
+			console.log("✅ Already connected to MongoDB");
 			return;
 		}
 
 		if (mongoose.connection.readyState === 2) {
-			console.log("Connection in progress, awaiting completion...");
+			console.log("⏳ Connection in progress, awaiting completion...");
 			await mongoose.connection.asPromise();
 			return;
 		}
 
-		const dbName = process.env.DB_NAME;
-		await mongoose.connect(`${process.env.MONGO_URI}/${dbName}`, {
+		await mongoose.connect(process.env.MONGO_URI, {
+			dbName: process.env.DB_NAME,
 			serverSelectionTimeoutMS: 5000,
 			connectTimeoutMS: 10000,
 			retryWrites: true,
 		});
 
-		console.log(`✅ MongoDB Connected to database: ${dbName}`);
+		console.log(`✅ MongoDB Connected to database: ${process.env.DB_NAME}`);
 	} catch (error) {
-		console.error(`MongoDB Connection Error: ${error.message}`);
+		console.error(`❌ MongoDB Connection Error: ${error.message}`);
 		throw error;
 	}
 };
