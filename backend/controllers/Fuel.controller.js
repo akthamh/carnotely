@@ -114,7 +114,7 @@ export const updateFuel = async (req, res) => {
 
 		// Verify car belongs to user if carId is provided
 		if (carId) {
-			const car = await Car.findOne({ _id: carId, userId: req.user._id });
+			const car = await Car.findOne({ _id: carId, userId: req.user.id });
 			if (!car) {
 				return res.status(403).json({
 					message: "Unauthorized car access or car not found",
@@ -123,7 +123,7 @@ export const updateFuel = async (req, res) => {
 		}
 
 		const updatedFuel = await Fuel.findOneAndUpdate(
-			{ _id: fuelId, userId: req.user._id },
+			{ _id: fuelId, userId: req.user.id },
 			updateData,
 			{ new: true }
 		).select("-userId");

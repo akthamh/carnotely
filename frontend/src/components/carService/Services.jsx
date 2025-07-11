@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
 import { FaPlus, FaWrench } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import ServiceCard from "./ServiceCard";
 import ServiceForm from "./ServiceForm";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
 
 export default function Services() {
@@ -13,44 +13,50 @@ export default function Services() {
 	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingService, setEditingService] = useState(null);
+	const [loadingServices, setLoadingServices] = useState(false);
+	const [loadingCars, setLoadingCars] = useState(false);
+	const [formErrors, setFormErrors] = useState({});
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
-	const axiosInstance = setupAxios(getToken);
+
+	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
 
 	useEffect(() => {
 		if (isSignedIn) {
-			fetchServices();
-			fetchCars();
+			const fetchData = async () => {
+				setLoadingServices(true);
+				setLoadingCars(true);
+				try {
+					const [servicesResponse, carsResponse] = await Promise.all([
+						axiosInstance.get("/services"),
+						axiosInstance.get("/cars"),
+					]);
+					setServices(servicesResponse.data);
+					setCars(carsResponse.data);
+				} catch (error) {
+					toast.error("Failed to fetch data. Please try again.");
+					console.error("Error fetching data:", error);
+				} finally {
+					setLoadingServices(false);
+					setLoadingCars(false);
+				}
+			};
+			fetchData();
+		} else {
+			setServices([]);
+			setCars([]);
 		}
-	}, [isSignedIn]);
-
-	const fetchServices = async () => {
-		try {
-			const response = await axiosInstance.get("/services");
-			setServices(response.data);
-		} catch (error) {
-			console.error("Error fetching services:", error);
-			// Error handling managed by axios interceptor
-		}
-	};
-
-	const fetchCars = async () => {
-		try {
-			const response = await axiosInstance.get("/cars");
-			setCars(response.data);
-		} catch (error) {
-			console.error("Error fetching cars:", error);
-			// Error handling managed by axios interceptor
-		}
-	};
+	}, [isSignedIn, axiosInstance]);
 
 	const handleAddService = () => {
 		setEditingService(null);
+		setFormErrors({});
 		setIsModalOpen(true);
 	};
 
 	const handleEditService = (service) => {
 		setEditingService(service);
+		setFormErrors({});
 		setIsModalOpen(true);
 	};
 
@@ -68,8 +74,8 @@ export default function Services() {
 		if (result.isConfirmed) {
 			try {
 				await axiosInstance.delete(`/services/${serviceId}`);
-				setServices(
-					services.filter((service) => service._id !== serviceId)
+				setServices((prev) =>
+					prev.filter((service) => service._id !== serviceId)
 				);
 				MySwal.fire(
 					"Deleted!",
@@ -86,49 +92,46 @@ export default function Services() {
 		}
 	};
 
-	// const handleDeleteService = async (serviceId) => {
-	// 	if (
-	// 		!window.confirm("Are you sure you want to delete this service log?")
-	// 	)
-	// 		return;
-	// 	try {
-	// 		await axiosInstance.delete(`/services/${serviceId}`);
-	// 		setServices(
-	// 			services.filter((service) => service._id !== serviceId)
-	// 		);
-	// 		toast.success("Service log deleted successfully");
-	// 	} catch (error) {
-	// 		console.error("Error deleting service:", error);
-	// 		// Error handling managed by axios interceptor
-	// 	}
-	// };
-
 	const handleDeleteAllServices = async () => {
-		if (
-			!window.confirm(
-				"Are you sure you want to delete all service logs? This action cannot be undone."
-			)
-		)
-			return;
-		try {
-			await axiosInstance.delete("/services");
-			setServices([]);
-			toast.success("All service logs deleted successfully");
-		} catch (error) {
-			console.error("Error deleting all services:", error);
-			// Error handling managed by axios interceptor
+		const result = await MySwal.fire({
+			title: "Are you sure?",
+			text: "All service logs will be permanently deleted!",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonColor: "#d33",
+			cancelButtonColor: "#3085d6",
+			confirmButtonText: "Yes, delete all!",
+		});
+
+		if (result.isConfirmed) {
+			try {
+				await axiosInstance.delete("/services");
+				setServices([]);
+				MySwal.fire(
+					"Deleted!",
+					"All service logs have been removed.",
+					"success"
+				);
+			} catch (error) {
+				MySwal.fire(
+					"Error",
+					"Something went wrong while deleting.",
+					"error"
+				);
+			}
 		}
 	};
 
 	const handleFormSubmit = async (serviceData) => {
 		try {
+			setFormErrors({});
 			if (editingService) {
 				const response = await axiosInstance.patch(
 					`/services/${editingService._id}`,
 					serviceData
 				);
-				setServices(
-					services.map((service) =>
+				setServices((prev) =>
+					prev.map((service) =>
 						service._id === editingService._id
 							? response.data
 							: service
@@ -140,14 +143,23 @@ export default function Services() {
 					"/services",
 					serviceData
 				);
-				setServices([...services, response.data]);
+				setServices((prev) => [...prev, response.data]);
 				toast.success("Service log added successfully");
 			}
 			setIsModalOpen(false);
 			setEditingService(null);
 		} catch (error) {
 			console.error("Error saving service:", error);
-			// Error handling managed by axios interceptor
+			if (error.response?.status === 400 && error.response.data) {
+				const { field, message } = error.response.data;
+				if (field && message) {
+					setFormErrors({ [field]: message });
+				} else if (error.response.data.message) {
+					setFormErrors({ form: error.response.data.message });
+				}
+			} else {
+				toast.error("Failed to save service log. Please try again.");
+			}
 		}
 	};
 
@@ -161,21 +173,28 @@ export default function Services() {
 					<div className="flex gap-2">
 						<button
 							onClick={handleAddService}
-							className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+							disabled={loadingServices || loadingCars}
+							className={`flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
 						>
 							<FaPlus className="w-5 h-5" />
 							Add Service Log
 						</button>
 						<button
 							onClick={handleDeleteAllServices}
-							className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-300 transform hover:scale-105"
+							disabled={loadingServices || loadingCars}
+							className={`flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
 						>
 							<FaWrench className="w-5 h-5" />
 							Delete All
 						</button>
 					</div>
 				</div>
-				{services.length === 0 ? (
+
+				{loadingServices || loadingCars ? (
+					<div className="text-center text-slate-500 text-lg animate-pulse">
+						Loading service logs...
+					</div>
+				) : services.length === 0 ? (
 					<div className="text-center text-slate-500 text-lg animate-fade-in">
 						No service logs added yet. Click "Add Service Log" to
 						get started!
@@ -193,6 +212,7 @@ export default function Services() {
 						))}
 					</div>
 				)}
+
 				{isModalOpen && (
 					<ServiceForm
 						service={editingService}
@@ -201,7 +221,9 @@ export default function Services() {
 						onClose={() => {
 							setIsModalOpen(false);
 							setEditingService(null);
+							setFormErrors({});
 						}}
+						serverErrors={formErrors}
 					/>
 				)}
 			</div>

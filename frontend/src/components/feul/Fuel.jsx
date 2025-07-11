@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
-import { FaPlus, FaGasPump } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import FuelCard from "./FuelCard";
 import FuelForm from "./fuelForm";
@@ -13,6 +13,8 @@ export default function Fuels() {
 	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingFuel, setEditingFuel] = useState(null);
+	const [loadingFuels, setLoadingFuels] = useState(false);
+	const [loadingCars, setLoadingCars] = useState(false);
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
 	const axiosInstance = setupAxios(getToken);
@@ -21,30 +23,36 @@ export default function Fuels() {
 		if (isSignedIn) {
 			fetchFuels();
 			fetchCars();
+		} else {
+			setFuels([]);
+			setCars([]);
 		}
 	}, [isSignedIn]);
 
 	const fetchFuels = async () => {
+		setLoadingFuels(true);
 		try {
 			const response = await axiosInstance.get("/fuels");
 			setFuels(response.data);
 		} catch (error) {
 			console.error("Error fetching fuels:", error);
-			// Error handling managed by axios interceptor
+		} finally {
+			setLoadingFuels(false);
 		}
 	};
 
 	const fetchCars = async () => {
+		setLoadingCars(true);
 		try {
 			const response = await axiosInstance.get("/cars");
 			setCars(response.data);
 		} catch (error) {
 			console.error("Error fetching cars:", error);
-			// Error handling managed by axios interceptor
+		} finally {
+			setLoadingCars(false);
 		}
 	};
 
-	// Handle adding a new fuel log
 	const handleAddFuel = () => {
 		setEditingFuel(null);
 		setIsModalOpen(true);
@@ -69,7 +77,7 @@ export default function Fuels() {
 		if (result.isConfirmed) {
 			try {
 				await axiosInstance.delete(`/fuels/${fuelId}`);
-				setFuels(fuels.filter((fuel) => fuel._id !== fuelId));
+				setFuels((prev) => prev.filter((fuel) => fuel._id !== fuelId));
 				MySwal.fire(
 					"Deleted!",
 					"The fuel log has been removed.",
@@ -84,7 +92,6 @@ export default function Fuels() {
 			}
 		}
 	};
-	
 
 	const handleFormSubmit = async (fuelData) => {
 		try {
@@ -93,22 +100,21 @@ export default function Fuels() {
 					`/fuels/${editingFuel._id}`,
 					fuelData
 				);
-				setFuels(
-					fuels.map((fuel) =>
+				setFuels((prev) =>
+					prev.map((fuel) =>
 						fuel._id === editingFuel._id ? response.data : fuel
 					)
 				);
 				toast.success("Fuel log updated successfully");
 			} else {
 				const response = await axiosInstance.post("/fuels", fuelData);
-				setFuels([...fuels, response.data]);
+				setFuels((prev) => [...prev, response.data]);
 				toast.success("Fuel log added successfully");
 			}
 			setIsModalOpen(false);
 			setEditingFuel(null);
 		} catch (error) {
 			console.error("Error saving fuel:", error);
-			// Error handling managed by axios interceptor
 		}
 	};
 
@@ -121,13 +127,19 @@ export default function Fuels() {
 					</h2>
 					<button
 						onClick={handleAddFuel}
-						className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+						disabled={loadingFuels || loadingCars}
+						className={`flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
 					>
 						<FaPlus className="w-5 h-5" />
 						Add Fuel Log
 					</button>
 				</div>
-				{fuels.length === 0 ? (
+
+				{loadingFuels || loadingCars ? (
+					<div className="text-center text-slate-500 text-lg animate-pulse">
+						Loading fuel logs...
+					</div>
+				) : fuels.length === 0 ? (
 					<div className="text-center text-slate-500 text-lg animate-fade-in">
 						No fuel logs added yet. Click "Add Fuel Log" to get
 						started!
@@ -145,6 +157,7 @@ export default function Fuels() {
 						))}
 					</div>
 				)}
+
 				{isModalOpen && (
 					<FuelForm
 						fuel={editingFuel}

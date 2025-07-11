@@ -1,58 +1,99 @@
-import { FaEdit, FaTrash } from "react-icons/fa";
+import {
+	FaCar,
+	FaEdit,
+	FaTrash,
+	FaWrench,
+	FaCalendarAlt,
+	FaCogs,
+	FaUserCog,
+	FaDollarSign,
+	FaRoad,
+	FaBuilding,
+	FaComment,
+} from "react-icons/fa";
 
 export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 	const car = cars.find((c) => c._id === service.carId);
 	const carName = car ? `${car.make} ${car.model}` : "Unknown Car";
+	const formattedDate = new Date(service.serviceDate).toLocaleDateString();
+	const totalCost = service.totalCost
+		? service.totalCost.toFixed(2)
+		: (
+				parseFloat(service.partsCost || 0) +
+				parseFloat(service.laborCost || 0)
+		  ).toFixed(2);
 
 	return (
-		<div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-300 group">
-			<div className="flex items-center justify-between">
+		<div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition">
+			<div className="flex justify-between items-start">
 				<div>
-					<h2 className="text-xl font-bold text-slate-100">
+					<h3 className="text-lg font-semibold text-slate-800">
 						{carName} - {service.serviceName}
-					</h2>
-					<p className="text-slate-300">
-						Date:{" "}
-						{new Date(service.serviceDate).toLocaleDateString()}
+					</h3>
+					<p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+						<FaCalendarAlt className="text-slate-400" />{" "}
+						{formattedDate}
 					</p>
-					<p className="text-slate-300">
-						Parts Cost: ${service.partsCost.toFixed(2)}
-					</p>
-					<p className="text-slate-300">
-						Labor Cost: ${service.laborCost.toFixed(2)}
-					</p>
-					<p className="text-slate-300">
-						Total Cost: ${service.totalCost?.toFixed(2) || "N/A"}
-					</p>
-					<p className="text-slate-300">
-						Mileage: {service.mileage} km
-					</p>
-					{service.serviceCenterName && (
-						<p className="text-slate-300">
-							Service Center: {service.serviceCenterName}
-						</p>
-					)}
-					{service.comment && (
-						<p className="text-slate-300">
-							Comment: {service.comment}
-						</p>
-					)}
 				</div>
-				<div className="flex gap-2">
+				<div className="flex gap-3">
 					<button
 						onClick={onEdit}
-						className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-all duration-200 transform hover:scale-110"
+						className="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800 transition-all duration-200"
+						aria-label={`Edit service log for ${carName}`}
 					>
-						<FaEdit className="w-5 h-5 text-slate-300" />
+						<FaEdit className="w-4 h-4" />
 					</button>
 					<button
 						onClick={onDelete}
-						className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-all duration-200 transform hover:scale-110"
+						className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-all duration-200"
+						aria-label={`Delete service log for ${carName}`}
 					>
-						<FaTrash className="w-5 h-5 text-slate-300" />
+						<FaTrash className="w-4 h-4" />
 					</button>
 				</div>
 			</div>
+			<div className="mt-4 grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-700">
+				<div className="flex items-center gap-2">
+					<FaWrench className="text-slate-400" />
+					<span className="hidden md:inline">Service:</span>{" "}
+					{service.serviceName}
+				</div>
+				<div className="flex items-center gap-2">
+					<FaCogs className="text-slate-400" />
+					<span className="hidden md:inline">Parts Cost:</span> $
+					{parseFloat(service.partsCost).toFixed(2)}
+				</div>
+				<div className="flex items-center gap-2">
+					<FaUserCog className="text-slate-400" />
+					<span className="hidden md:inline">Labor Cost:</span> $
+					{parseFloat(service.laborCost).toFixed(2)}
+				</div>
+				<div className="flex items-center gap-2">
+					<FaDollarSign className="text-slate-400" />
+					<span className="hidden md:inline">Total Cost:</span> $
+					{totalCost}
+				</div>
+				<div className="flex items-center gap-2">
+					<FaRoad className="text-slate-400" />
+					<span className="hidden md:inline">Mileage:</span>{" "}
+					{service.mileage} km
+				</div>
+				{service.serviceCenterName && (
+					<div className="flex items-center gap-2">
+						<FaBuilding className="text-slate-400" />
+						<span className="hidden md:inline">
+							Service Center:
+						</span>{" "}
+						{service.serviceCenterName}
+					</div>
+				)}
+			</div>
+			{service.comment && (
+				<div className="mt-3 text-slate-500 italic text-sm border-t pt-2 flex items-start gap-2">
+					<FaComment className="text-slate-400 mt-1" />"
+					{service.comment}"
+				</div>
+			)}
 		</div>
 	);
 }

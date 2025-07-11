@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
 const SERVICE_TYPES = [
@@ -24,7 +24,13 @@ const SERVICE_TYPES = [
 	"Other",
 ];
 
-export default function ServiceForm({ service, cars, onSubmit, onClose }) {
+export default function ServiceForm({
+	service,
+	cars,
+	onSubmit,
+	onClose,
+	serverErrors = {},
+}) {
 	const [formData, setFormData] = useState({
 		carId: service?.carId || "",
 		serviceName: service?.serviceName || "",
@@ -39,13 +45,34 @@ export default function ServiceForm({ service, cars, onSubmit, onClose }) {
 	});
 	const [errors, setErrors] = useState({});
 
+	useEffect(() => {
+		setFormData({
+			carId: service?.carId || "",
+			serviceName: service?.serviceName || "",
+			partsCost: service?.partsCost || "",
+			laborCost: service?.laborCost || "",
+			mileage: service?.mileage || "",
+			serviceDate: service?.serviceDate
+				? new Date(service.serviceDate).toISOString().split("T")[0]
+				: "",
+			serviceCenterName: service?.serviceCenterName || "",
+			comment: service?.comment || "",
+		});
+		setErrors({});
+	}, [service]);
+
+	useEffect(() => {
+		const handleEscape = (e) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", handleEscape);
+		return () => document.removeEventListener("keydown", handleEscape);
+	}, [onClose]);
+
 	const handleChange = (e) => {
 		const { name, value } = e.target;
-		setFormData({
-			...formData,
-			[name]: value,
-		});
-		if (errors[name]) {
+		setFormData({ ...formData, [name]: value });
+		if (errors[name] || serverErrors[name]) {
 			setErrors({ ...errors, [name]: null });
 		}
 	};
@@ -82,8 +109,8 @@ export default function ServiceForm({ service, cars, onSubmit, onClose }) {
 					: null,
 		};
 		const newErrors = {};
-		Object.keys(schema).forEach((key) => {
-			const error = schema[key](formData[key]);
+		Object.entries(schema).forEach(([key, validate]) => {
+			const error = validate(formData[key]);
 			if (error) newErrors[key] = error;
 		});
 		return newErrors;
@@ -100,182 +127,153 @@ export default function ServiceForm({ service, cars, onSubmit, onClose }) {
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-			<div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md transform transition-all duration-300 scale-100">
-				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-2xl font-bold text-slate-100">
-						{service ? "Edit Service Log" : "Add Service Log"}
-					</h2>
-					<button
-						onClick={onClose}
-						className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 transition-all duration-200"
-					>
-						<FaTimes className="w-5 h-5 text-slate-300" />
-					</button>
-				</div>
-				<form onSubmit={handleSubmit}>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">Car</label>
+		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+			<div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative">
+				<button
+					onClick={onClose}
+					className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
+					aria-label="Close modal"
+				>
+					<FaTimes className="w-5 h-5" />
+				</button>
+				<h2 className="text-xl font-semibold text-slate-800 mb-4">
+					{service ? "Edit Service Log" : "Add Service Log"}
+				</h2>
+				{serverErrors.form && (
+					<p className="text-red-500 mb-4 text-center font-semibold">
+						{serverErrors.form}
+					</p>
+				)}
+				<form onSubmit={handleSubmit} className="space-y-4" noValidate>
+					<div>
+						<label className="block text-sm font-medium text-slate-700">
+							Car
+						</label>
 						<select
 							name="carId"
 							value={formData.carId}
 							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
+							className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 focus:outline-none focus:border-blue-600 transition"
+							aria-label="Select a car"
 						>
-							<option value="">Select Car</option>
+							<option value="">Select a car</option>
 							{cars.map((car) => (
 								<option key={car._id} value={car._id}>
 									{car.make} {car.model}
 								</option>
 							))}
 						</select>
-						{errors.carId && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.carId}
+						{(errors.carId || serverErrors.carId) && (
+							<p className="text-red-500 text-sm mt-1">
+								{errors.carId || serverErrors.carId}
 							</p>
 						)}
 					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
+					<div>
+						<label className="block text-sm font-medium text-slate-700">
 							Service Name
 						</label>
 						<select
 							name="serviceName"
 							value={formData.serviceName}
 							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
+							className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 focus:outline-none focus:border-blue-600 transition"
+							aria-label="Select service type"
 						>
-							<option value="">Select Service Type</option>
+							<option value="">Select service type</option>
 							{SERVICE_TYPES.map((type) => (
 								<option key={type} value={type}>
 									{type}
 								</option>
 							))}
 						</select>
-						{errors.serviceName && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.serviceName}
+						{(errors.serviceName || serverErrors.serviceName) && (
+							<p className="text-red-500 text-sm mt-1">
+								{errors.serviceName || serverErrors.serviceName}
 							</p>
 						)}
 					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Parts Cost
-						</label>
-						<input
-							type="number"
-							name="partsCost"
-							value={formData.partsCost}
-							onChange={handleChange}
-							step="0.01"
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{errors.partsCost && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.partsCost}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Labor Cost
-						</label>
-						<input
-							type="number"
-							name="laborCost"
-							value={formData.laborCost}
-							onChange={handleChange}
-							step="0.01"
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{errors.laborCost && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.laborCost}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Mileage (km)
-						</label>
-						<input
-							type="number"
-							name="mileage"
-							value={formData.mileage}
-							onChange={handleChange}
-							step="1"
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{errors.mileage && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.mileage}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Service Date
-						</label>
-						<input
-							type="date"
-							name="serviceDate"
-							value={formData.serviceDate}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{errors.serviceDate && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.serviceDate}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Service Center (Optional)
-						</label>
-						<input
-							type="text"
-							name="serviceCenterName"
-							value={formData.serviceCenterName}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{errors.serviceCenterName && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.serviceCenterName}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
+					{[
+						{
+							label: "Parts Cost ($)",
+							name: "partsCost",
+							type: "number",
+							step: "0.01",
+						},
+						{
+							label: "Labor Cost ($)",
+							name: "laborCost",
+							type: "number",
+							step: "0.01",
+						},
+						{
+							label: "Mileage (km)",
+							name: "mileage",
+							type: "number",
+							step: "1",
+						},
+						{
+							label: "Service Date",
+							name: "serviceDate",
+							type: "date",
+						},
+						{
+							label: "Service Center (Optional)",
+							name: "serviceCenterName",
+							type: "text",
+						},
+					].map(({ label, name, type, step }) => (
+						<div key={name}>
+							<label className="block text-sm font-medium text-slate-700">
+								{label}
+							</label>
+							<input
+								type={type}
+								name={name}
+								value={formData[name]}
+								onChange={handleChange}
+								step={step}
+								className="mt-1 block w-full rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-blue-600 transition"
+								aria-label={label}
+							/>
+							{(errors[name] || serverErrors[name]) && (
+								<p className="text-red-500 text-sm mt-1">
+									{errors[name] || serverErrors[name]}
+								</p>
+							)}
+						</div>
+					))}
+					<div>
+						<label className="block text-sm font-medium text-slate-700">
 							Comment (Optional)
 						</label>
 						<textarea
 							name="comment"
 							value={formData.comment}
 							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-							rows="4"
+							rows="3"
+							className="mt-1 w-full rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-blue-600 transition"
+							aria-label="Comment"
 						/>
-						{errors.comment && (
-							<p className="text-red-400 text-sm mt-1">
-								{errors.comment}
+						{(errors.comment || serverErrors.comment) && (
+							<p className="text-red-500 text-sm mt-1">
+								{errors.comment || serverErrors.comment}
 							</p>
 						)}
 					</div>
-					<div className="flex justify-end gap-2">
+					<div className="flex justify-end gap-2 pt-2">
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 rounded-lg bg-slate-700 text-slate-200 hover:bg-slate-600 transition-all duration-200 transform hover:scale-105"
+							className="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="px-4 py-2 rounded-lg bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+							className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
 						>
-							{service ? "Update" : "Add"} Service Log
+							{service ? "Update" : "Add"}
 						</button>
 					</div>
 				</form>

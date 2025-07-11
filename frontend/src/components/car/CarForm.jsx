@@ -13,7 +13,6 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	});
 	const [errors, setErrors] = useState({});
 
-	// Reset formData and errors when car changes (for edit mode)
 	useEffect(() => {
 		setFormData({
 			make: car?.make || "",
@@ -27,16 +26,20 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 		setErrors({});
 	}, [car]);
 
-	const combinedErrors = { ...errors, ...serverErrors };
+	// Add keyboard accessibility (Escape key to close)
+	useEffect(() => {
+		const handleEscape = (e) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", handleEscape);
+		return () => document.removeEventListener("keydown", handleEscape);
+	}, [onClose]);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setFormData({ ...formData, [name]: value });
-
 		if (errors[name] || serverErrors[name]) {
 			setErrors({ ...errors, [name]: null });
-			// We cannot clear serverErrors here directly because it lives in parent,
-			// but on next form submit it will be cleared in parent anyway.
 		}
 	};
 
@@ -49,15 +52,24 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 				const yearNum = parseInt(val);
 				const currentYear = new Date().getFullYear();
 				if (yearNum < 1886 || yearNum > currentYear)
-					return "Year must be between 1886 and " + currentYear;
+					return `Year must be between 1886 and ${currentYear}`;
 				return null;
 			},
 			registrationNumber: (val) =>
 				!val ? "Registration number is required" : null,
+			vin: (val) =>
+				val && val.length > 17
+					? "VIN must be 17 characters or less"
+					: null,
+			color: (val) =>
+				val && val.length > 50
+					? "Color must be 50 characters or less"
+					: null,
+			fuelType: (val) => (!val ? "Fuel type is required" : null),
 		};
 		const newErrors = {};
-		Object.keys(schema).forEach((key) => {
-			const error = schema[key](formData[key]);
+		Object.entries(schema).forEach(([key, validate]) => {
+			const error = validate(formData[key]);
 			if (error) newErrors[key] = error;
 		});
 		return newErrors;
@@ -74,126 +86,65 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-			<div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md transform transition-all duration-300 scale-100">
-				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-2xl font-bold text-slate-100">
-						{car ? "Edit Car" : "Add Car"}
-					</h2>
-					<button
-						onClick={onClose}
-						className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 transition-all duration-200"
-					>
-						<FaTimes className="w-5 h-5 text-slate-300" />
-					</button>
-				</div>
-
-				{combinedErrors.form && (
-					<p className="text-red-400 mb-4 text-center font-semibold">
-						{combinedErrors.form}
+		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+			<div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative">
+				<button
+					onClick={onClose}
+					className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
+					aria-label="Close modal"
+				>
+					<FaTimes className="w-5 h-5" />
+				</button>
+				<h2 className="text-xl font-semibold text-slate-800 mb-4">
+					{car ? "Edit Car" : "Add Car"}
+				</h2>
+				{serverErrors.form && (
+					<p className="text-red-500 mb-4 text-center font-semibold">
+						{serverErrors.form}
 					</p>
 				)}
-
-				<form onSubmit={handleSubmit} noValidate>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Make
-						</label>
-						<input
-							type="text"
-							name="make"
-							value={formData.make}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.make && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.make}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Model
-						</label>
-						<input
-							type="text"
-							name="model"
-							value={formData.model}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.model && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.model}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Year
-						</label>
-						<input
-							type="number"
-							name="year"
-							value={formData.year}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.year && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.year}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Registration Number
-						</label>
-						<input
-							type="text"
-							name="registrationNumber"
-							value={formData.registrationNumber}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.registrationNumber && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.registrationNumber}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">VIN</label>
-						<input
-							type="text"
-							name="vin"
-							value={formData.vin}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Color
-						</label>
-						<input
-							type="text"
-							name="color"
-							value={formData.color}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-					</div>
-					<div className="mb-6">
-						<label className="block text-slate-300 mb-1">
+				<form onSubmit={handleSubmit} className="space-y-4" noValidate>
+					{[
+						{ label: "Make", name: "make", type: "text" },
+						{ label: "Model", name: "model", type: "text" },
+						{ label: "Year", name: "year", type: "number" },
+						{
+							label: "Registration Number",
+							name: "registrationNumber",
+							type: "text",
+						},
+						{ label: "VIN", name: "vin", type: "text" },
+						{ label: "Color", name: "color", type: "text" },
+					].map(({ label, name, type }) => (
+						<div key={name}>
+							<label className="block text-sm font-medium text-slate-700">
+								{label}
+							</label>
+							<input
+								type={type}
+								name={name}
+								value={formData[name]}
+								onChange={handleChange}
+								className="mt-1 block w-full rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-blue-600 transition"
+								aria-label={label}
+							/>
+							{(errors[name] || serverErrors[name]) && (
+								<p className="text-red-500 text-sm mt-1">
+									{errors[name] || serverErrors[name]}
+								</p>
+							)}
+						</div>
+					))}
+					<div>
+						<label className="block text-sm font-medium text-slate-700">
 							Fuel Type
 						</label>
 						<select
 							name="fuelType"
 							value={formData.fuelType}
 							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
+							className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 focus:outline-none focus:border-blue-600 transition"
+							aria-label="Fuel Type"
 						>
 							<option value="">Select fuel type</option>
 							<option value="Petrol">Petrol</option>
@@ -201,20 +152,25 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 							<option value="Electric">Electric</option>
 							<option value="Hybrid">Hybrid</option>
 						</select>
+						{(errors.fuelType || serverErrors.fuelType) && (
+							<p className="text-red-500 text-sm mt-1">
+								{errors.fuelType || serverErrors.fuelType}
+							</p>
+						)}
 					</div>
-					<div className="flex justify-end gap-3">
+					<div className="flex justify-end gap-2 pt-2">
 						<button
 							type="button"
 							onClick={onClose}
-							className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-all duration-200"
+							className="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300"
+							className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
 						>
-							{car ? "Update Car" : "Add Car"}
+							{car ? "Update" : "Add"}
 						</button>
 					</div>
 				</form>
