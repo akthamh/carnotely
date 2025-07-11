@@ -78,12 +78,10 @@ export default function FuelCard({ fuel, cars, onEdit, onDelete }) {
 				</div>
 			</div>
 
-			{fuel.comment && (
-				<div className="mt-3 text-slate-500 italic text-sm border-t pt-2 flex items-start gap-2">
-					<FaComment className="text-slate-400 mt-1" /> “
-					{fuel.comment}”
-				</div>
-			)}
+			<div className="mt-3 text-slate-500 italic text-sm border-t pt-2 flex items-start gap-2">
+				<FaComment className="text-slate-400 mt-1" /> “
+				{fuel.comment ? `${fuel.comment}` : "No comment"}”
+			</div>
 		</div>
 	);
 }

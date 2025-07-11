@@ -78,22 +78,23 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 					<span className="hidden md:inline">Mileage:</span>{" "}
 					{service.mileage} km
 				</div>
-				{service.serviceCenterName && (
-					<div className="flex items-center gap-2">
-						<FaBuilding className="text-slate-400" />
-						<span className="hidden md:inline">
-							Service Center:
-						</span>{" "}
-						{service.serviceCenterName}
-					</div>
-				)}
 			</div>
-			{service.comment && (
-				<div className="mt-3 text-slate-500 italic text-sm border-t pt-2 flex items-start gap-2">
-					<FaComment className="text-slate-400 mt-1" />"
-					{service.comment}"
+			<div className="mt-3 text-slate-500  text-sm  pt-2">
+				<div className="flex items-center gap-2">
+					<FaBuilding className="text-slate-400" />
+					<span className="hidden md:inline">
+						Service Center:
+					</span>{" "}
+					{service.serviceCenterName
+						? `${service.serviceCenterName}`
+						: "N/A"}
 				</div>
-			)}
+			</div>
+
+			<div className="mt-3 text-slate-500 italic text-sm border-t pt-2 flex items-start gap-2">
+				<FaComment className="text-slate-400 mt-1" />
+				{service.comment ? `"${service.comment}"` : "No comments"}
+			</div>
 		</div>
 	);
 }

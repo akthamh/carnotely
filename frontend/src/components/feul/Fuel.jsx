@@ -123,7 +123,7 @@ export default function Fuels() {
 			<div className="container mx-auto py-6">
 				<div className="flex justify-between items-center mb-6">
 					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
-						Fuel Logs
+						Fuel Logs 
 					</h2>
 					<button
 						onClick={handleAddFuel}

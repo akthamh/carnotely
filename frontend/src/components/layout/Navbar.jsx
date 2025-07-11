@@ -17,7 +17,7 @@ export default function Navbar() {
 					<FaBars className="w-6 h-6" />
 				</button>
 				<h1 className="text-lg font-semibold text-gray-800">
-					Car Service Tracker
+					Car Notely 🚗
 				</h1>
 			</div>
 			<UserButton

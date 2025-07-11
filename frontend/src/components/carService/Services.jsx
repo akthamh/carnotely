@@ -94,16 +94,26 @@ export default function Services() {
 
 	const handleDeleteAllServices = async () => {
 		const result = await MySwal.fire({
-			title: "Are you sure?",
-			text: "All service logs will be permanently deleted!",
+			title: "Type to Confirm Deletion",
+			html: `All service logs will be permanently deleted!<br /><br />
+			Please type <b style="color: #dc2626;">service log</b> below to confirm.`,
 			icon: "warning",
+			input: "text",
+			inputPlaceholder: "Type 'service log'",
 			showCancelButton: true,
 			confirmButtonColor: "#d33",
 			cancelButtonColor: "#3085d6",
-			confirmButtonText: "Yes, delete all!",
+			confirmButtonText: "Delete All",
+			preConfirm: (inputValue) => {
+				if (inputValue !== "service log") {
+					MySwal.showValidationMessage(
+						"You must type 'service log' exactly to confirm"
+					);
+				}
+			},
 		});
 
-		if (result.isConfirmed) {
+		if (result.isConfirmed && result.value === "service log") {
 			try {
 				await axiosInstance.delete("/services");
 				setServices([]);
