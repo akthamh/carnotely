@@ -42,7 +42,7 @@ const findUserFuelById = async (fuelId, userId) => {
 // 📄 Get all fuels for logged-in user
 export const getAllFuels = async (req, res) => {
 	try {
-		const fuels = await Fuel.find({ userId: req.user._id })
+		const fuels = await Fuel.find({ userId: req.user.id })
 			.sort({ fuelDate: -1 })
 			.select("-userId")
 			.lean();
@@ -70,7 +70,7 @@ export const createFuel = async (req, res) => {
 		}
 
 		// Verify car belongs to user
-		const car = await Car.findOne({ _id: carId, userId: req.user._id });
+		const car = await Car.findOne({ _id: carId, userId: req.user.id });
 		if (!car) {
 			return res
 				.status(403)
@@ -79,7 +79,7 @@ export const createFuel = async (req, res) => {
 
 		const newFuel = new Fuel({
 			...req.body,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		const savedFuel = await newFuel.save();
@@ -116,11 +116,9 @@ export const updateFuel = async (req, res) => {
 		if (carId) {
 			const car = await Car.findOne({ _id: carId, userId: req.user._id });
 			if (!car) {
-				return res
-					.status(403)
-					.json({
-						message: "Unauthorized car access or car not found",
-					});
+				return res.status(403).json({
+					message: "Unauthorized car access or car not found",
+				});
 			}
 		}
 
@@ -154,7 +152,7 @@ export const deleteFuel = async (req, res) => {
 
 		const deletedFuel = await Fuel.findOneAndDelete({
 			_id: fuelId,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		if (!deletedFuel) {

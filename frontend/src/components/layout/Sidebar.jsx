@@ -5,6 +5,7 @@ import {
 	FaGasPump,
 	FaFileAlt,
 	FaCog,
+	FaWrench,
 } from "react-icons/fa";
 
 export const links = [
@@ -15,6 +16,7 @@ export const links = [
 	},
 	{ to: "/cars", label: "Cars", icon: <FaCar className="w-6 h-6" /> },
 	{ to: "/fuel", label: "Fuel", icon: <FaGasPump className="w-6 h-6" /> },
+	{ to: "/service", label: "Service", icon: <FaWrench className="w-6 h-6" /> },
 	{
 		to: "/documents",
 		label: "Documents",

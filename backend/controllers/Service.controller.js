@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Service from "../models/Service.model.js";
 import Car from "../models/Car.model.js";
 import Joi from "joi";
@@ -35,7 +36,7 @@ const serviceSchema = Joi.object({
 // Get all services for the current user
 export const getAllServices = async (req, res) => {
 	try {
-		const services = await Service.find({ userId: req.user._id })
+		const services = await Service.find({ userId: req.user.id })
 			.select("-userId")
 			.lean();
 		res.status(200).json(services);
@@ -62,7 +63,7 @@ export const createService = async (req, res) => {
 		}
 
 		// Verify car belongs to user
-		const car = await Car.findOne({ _id: carId, userId: req.user._id });
+		const car = await Car.findOne({ _id: carId, userId: req.user.id });
 		if (!car) {
 			return res
 				.status(403)
@@ -71,7 +72,7 @@ export const createService = async (req, res) => {
 
 		const serviceData = {
 			...req.body,
-			userId: req.user._id,
+			userId: req.user.id,
 		};
 		const newService = new Service(serviceData);
 		const savedService = await newService.save();
@@ -107,7 +108,7 @@ export const updateService = async (req, res) => {
 
 		// Verify car belongs to user if carId is provided
 		if (carId) {
-			const car = await Car.findOne({ _id: carId, userId: req.user._id });
+			const car = await Car.findOne({ _id: carId, userId: req.user.id });
 			if (!car) {
 				return res.status(403).json({
 					message: "Unauthorized car access or car not found",
@@ -121,7 +122,7 @@ export const updateService = async (req, res) => {
 		}
 
 		const updatedService = await Service.findOneAndUpdate(
-			{ _id: serviceId, userId: req.user._id },
+			{ _id: serviceId, userId: req.user.id },
 			updateData,
 			{ new: true }
 		).select("-userId");
@@ -150,7 +151,7 @@ export const deleteService = async (req, res) => {
 
 		const deletedService = await Service.findOneAndDelete({
 			_id: serviceId,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		if (!deletedService) {
@@ -170,7 +171,7 @@ export const deleteService = async (req, res) => {
 // Delete all services for the current user
 export const deleteAllServices = async (req, res) => {
 	try {
-		await Service.deleteMany({ userId: req.user._id });
+		await Service.deleteMany({ userId: req.user.id });
 		res.status(200).json({ message: "All services deleted successfully" });
 	} catch (error) {
 		console.error("Error in deleteAllServices:", error.message);

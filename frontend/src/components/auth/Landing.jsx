@@ -26,14 +26,14 @@ function Landing() {
 						onClick={() => navigate("/sign-in")}
 						className="px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg shadow-lg hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
 					>
-						Sign In
+						Sign In or Sign Up
 					</button>
-					<button
+					{/* <button
 						onClick={() => navigate("/sign-up")}
 						className="px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg shadow-lg hover:from-slate-600 hover:to-slate-700 transition-all duration-300 transform hover:scale-105"
 					>
 						Sign Up
-					</button>
+					</button> */}
 				</div>
 			</motion.div>
 		</div>

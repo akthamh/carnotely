@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
-export default function CarForm({ car, onSubmit, onClose }) {
+export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	const [formData, setFormData] = useState({
 		make: car?.make || "",
 		model: car?.model || "",
@@ -13,11 +13,30 @@ export default function CarForm({ car, onSubmit, onClose }) {
 	});
 	const [errors, setErrors] = useState({});
 
+	// Reset formData and errors when car changes (for edit mode)
+	useEffect(() => {
+		setFormData({
+			make: car?.make || "",
+			model: car?.model || "",
+			year: car?.year || "",
+			registrationNumber: car?.registrationNumber || "",
+			vin: car?.vin || "",
+			color: car?.color || "",
+			fuelType: car?.fuelType || "",
+		});
+		setErrors({});
+	}, [car]);
+
+	const combinedErrors = { ...errors, ...serverErrors };
+
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setFormData({ ...formData, [name]: value });
-		if (errors[name]) {
+
+		if (errors[name] || serverErrors[name]) {
 			setErrors({ ...errors, [name]: null });
+			// We cannot clear serverErrors here directly because it lives in parent,
+			// but on next form submit it will be cleared in parent anyway.
 		}
 	};
 
@@ -68,7 +87,14 @@ export default function CarForm({ car, onSubmit, onClose }) {
 						<FaTimes className="w-5 h-5 text-slate-300" />
 					</button>
 				</div>
-				<form onSubmit={handleSubmit}>
+
+				{combinedErrors.form && (
+					<p className="text-red-400 mb-4 text-center font-semibold">
+						{combinedErrors.form}
+					</p>
+				)}
+
+				<form onSubmit={handleSubmit} noValidate>
 					<div className="mb-4">
 						<label className="block text-slate-300 mb-1">
 							Make
@@ -80,9 +106,9 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							onChange={handleChange}
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						/>
-						{errors.make && (
+						{combinedErrors.make && (
 							<p className="text-red-400 text-sm mt-1">
-								{errors.make}
+								{combinedErrors.make}
 							</p>
 						)}
 					</div>
@@ -97,9 +123,9 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							onChange={handleChange}
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						/>
-						{errors.model && (
+						{combinedErrors.model && (
 							<p className="text-red-400 text-sm mt-1">
-								{errors.model}
+								{combinedErrors.model}
 							</p>
 						)}
 					</div>
@@ -114,9 +140,9 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							onChange={handleChange}
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						/>
-						{errors.year && (
+						{combinedErrors.year && (
 							<p className="text-red-400 text-sm mt-1">
-								{errors.year}
+								{combinedErrors.year}
 							</p>
 						)}
 					</div>
@@ -131,16 +157,14 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							onChange={handleChange}
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						/>
-						{errors.registrationNumber && (
+						{combinedErrors.registrationNumber && (
 							<p className="text-red-400 text-sm mt-1">
-								{errors.registrationNumber}
+								{combinedErrors.registrationNumber}
 							</p>
 						)}
 					</div>
 					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							VIN (Optional)
-						</label>
+						<label className="block text-slate-300 mb-1">VIN</label>
 						<input
 							type="text"
 							name="vin"
@@ -151,7 +175,7 @@ export default function CarForm({ car, onSubmit, onClose }) {
 					</div>
 					<div className="mb-4">
 						<label className="block text-slate-300 mb-1">
-							Color (Optional)
+							Color
 						</label>
 						<input
 							type="text"
@@ -161,9 +185,9 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						/>
 					</div>
-					<div className="mb-4">
+					<div className="mb-6">
 						<label className="block text-slate-300 mb-1">
-							Fuel Type (Optional)
+							Fuel Type
 						</label>
 						<select
 							name="fuelType"
@@ -171,34 +195,26 @@ export default function CarForm({ car, onSubmit, onClose }) {
 							onChange={handleChange}
 							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
 						>
-							<option value="">Select Fuel Type</option>
-							{[
-								"Diesel",
-								"Petrol",
-								"Ethanol",
-								"LPG",
-								"CNG",
-								"Hybrid",
-							].map((type) => (
-								<option key={type} value={type}>
-									{type}
-								</option>
-							))}
+							<option value="">Select fuel type</option>
+							<option value="Petrol">Petrol</option>
+							<option value="Diesel">Diesel</option>
+							<option value="Electric">Electric</option>
+							<option value="Hybrid">Hybrid</option>
 						</select>
 					</div>
-					<div className="flex justify-end gap-2">
+					<div className="flex justify-end gap-3">
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 rounded-lg bg-slate-700 text-slate-200 hover:bg-slate-600 transition-all duration-200 transform hover:scale-105"
+							className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-all duration-200"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="px-4 py-2 rounded-lg bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+							className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300"
 						>
-							{car ? "Update" : "Add"} Car
+							{car ? "Update Car" : "Add Car"}
 						</button>
 					</div>
 				</form>

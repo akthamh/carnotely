@@ -1,28 +1,38 @@
 import { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
-import { FaCar, FaPlus } from "react-icons/fa";
+import { FaPlus, FaGasPump } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
-import CarCard from "./CarCard";
-import CarForm from "./CarForm";
+import FuelCard from "./FuelCard";
+import FuelForm from "./fuelForm";
 import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
 
-export default function Cars() {
+export default function Fuels() {
+	const [fuels, setFuels] = useState([]);
 	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [editingCar, setEditingCar] = useState(null);
+	const [editingFuel, setEditingFuel] = useState(null);
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
-	const [formErrors, setFormErrors] = useState({});
-
 	const axiosInstance = setupAxios(getToken);
 
 	useEffect(() => {
 		if (isSignedIn) {
+			fetchFuels();
 			fetchCars();
 		}
 	}, [isSignedIn]);
+
+	const fetchFuels = async () => {
+		try {
+			const response = await axiosInstance.get("/fuels");
+			setFuels(response.data);
+		} catch (error) {
+			console.error("Error fetching fuels:", error);
+			// Error handling managed by axios interceptor
+		}
+	};
 
 	const fetchCars = async () => {
 		try {
@@ -30,23 +40,25 @@ export default function Cars() {
 			setCars(response.data);
 		} catch (error) {
 			console.error("Error fetching cars:", error);
-			// Error handling is managed by axios interceptor
+			// Error handling managed by axios interceptor
 		}
 	};
 
-	const handleAddCar = () => {
-		setEditingCar(null);
+	// Handle adding a new fuel log
+	const handleAddFuel = () => {
+		setEditingFuel(null);
 		setIsModalOpen(true);
 	};
 
-	const handleEditCar = (car) => {
-		setEditingCar(car);
+	const handleEditFuel = (fuel) => {
+		setEditingFuel(fuel);
 		setIsModalOpen(true);
 	};
-	const handleDelete = async (carId) => {
+
+	const handleDelete = async (fuelId) => {
 		const result = await MySwal.fire({
 			title: "Are you sure?",
-			text: "This car will be permanently deleted!",
+			text: "This fuel log will be permanently deleted!",
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#d33",
@@ -56,12 +68,11 @@ export default function Cars() {
 
 		if (result.isConfirmed) {
 			try {
-				await axiosInstance.delete(`/cars/${carId}`);
-				setCars(cars.filter((car) => car._id !== carId));
-				fetchCars();
+				await axiosInstance.delete(`/fuels/${fuelId}`);
+				setFuels(fuels.filter((fuel) => fuel._id !== fuelId));
 				MySwal.fire(
 					"Deleted!",
-					"The cars has been removed.",
+					"The fuel log has been removed.",
 					"success"
 				);
 			} catch (error) {
@@ -73,46 +84,31 @@ export default function Cars() {
 			}
 		}
 	};
+	
 
-
-	const handleFormSubmit = async (carData) => {
+	const handleFormSubmit = async (fuelData) => {
 		try {
-			setFormErrors({}); // clear previous errors
-
-			if (editingCar) {
+			if (editingFuel) {
 				const response = await axiosInstance.patch(
-					`/cars/${editingCar._id}`,
-					carData
+					`/fuels/${editingFuel._id}`,
+					fuelData
 				);
-				setCars(
-					cars.map((car) =>
-						car._id === editingCar._id ? response.data : car
+				setFuels(
+					fuels.map((fuel) =>
+						fuel._id === editingFuel._id ? response.data : fuel
 					)
 				);
-				toast.success("Car updated successfully");
+				toast.success("Fuel log updated successfully");
 			} else {
-				const response = await axiosInstance.post("/cars", carData);
-				setCars([...cars, response.data]);
-				toast.success("Car added successfully");
+				const response = await axiosInstance.post("/fuels", fuelData);
+				setFuels([...fuels, response.data]);
+				toast.success("Fuel log added successfully");
 			}
 			setIsModalOpen(false);
-			setEditingCar(null);
+			setEditingFuel(null);
 		} catch (error) {
-			console.error("Error saving car:", error);
-
-			// Check for validation error from backend
-			if (error.response?.status === 400 && error.response.data) {
-				// Assuming backend returns errors in { field: string, message: string } format
-				const { field, message } = error.response.data;
-
-				if (field && message) {
-					setFormErrors({ [field]: message });
-				} else if (error.response.data.message) {
-					setFormErrors({ form: error.response.data.message });
-				}
-			} else {
-				toast.error("Failed to save car. Please try again.");
-			}
+			console.error("Error saving fuel:", error);
+			// Error handling managed by axios interceptor
 		}
 	};
 
@@ -121,42 +117,43 @@ export default function Cars() {
 			<div className="container mx-auto py-6">
 				<div className="flex justify-between items-center mb-6">
 					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
-						My Cars
+						Fuel Logs
 					</h2>
 					<button
-						onClick={handleAddCar}
+						onClick={handleAddFuel}
 						className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
 					>
 						<FaPlus className="w-5 h-5" />
-						Add Car
+						Add Fuel Log
 					</button>
 				</div>
-				{cars.length === 0 ? (
+				{fuels.length === 0 ? (
 					<div className="text-center text-slate-500 text-lg animate-fade-in">
-						No cars added yet. Click "Add Car" to get started!
+						No fuel logs added yet. Click "Add Fuel Log" to get
+						started!
 					</div>
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						{cars.map((car) => (
-							<CarCard
-								key={car._id}
-								car={car}
-								onEdit={() => handleEditCar(car)}
-								onDelete={() => handleDelete(car._id)}
+						{fuels.map((fuel) => (
+							<FuelCard
+								key={fuel._id}
+								fuel={fuel}
+								cars={cars}
+								onEdit={() => handleEditFuel(fuel)}
+								onDelete={() => handleDelete(fuel._id)}
 							/>
 						))}
 					</div>
 				)}
 				{isModalOpen && (
-					<CarForm
-						car={editingCar}
+					<FuelForm
+						fuel={editingFuel}
+						cars={cars}
 						onSubmit={handleFormSubmit}
 						onClose={() => {
 							setIsModalOpen(false);
-							setEditingCar(null);
-							setFormErrors({});
+							setEditingFuel(null);
 						}}
-						serverErrors={formErrors}
 					/>
 				)}
 			</div>

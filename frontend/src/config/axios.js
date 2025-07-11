@@ -11,7 +11,13 @@ const axiosInstance = axios.create({
 	},
 });
 
+let interceptorsConfigured = false;
+
 export const setupAxios = (getToken) => {
+	if (interceptorsConfigured) {
+		return axiosInstance; // avoid setting interceptors again
+	}
+
 	axiosInstance.interceptors.request.use(
 		async (config) => {
 			try {
@@ -54,6 +60,8 @@ export const setupAxios = (getToken) => {
 			return Promise.reject(error);
 		}
 	);
+
+	interceptorsConfigured = true;
 
 	return axiosInstance;
 };

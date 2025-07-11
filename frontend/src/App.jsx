@@ -9,6 +9,9 @@ import {
 } from "@clerk/clerk-react";
 import Dashboard from "./components/Dashboard";
 import Cars from "./components/car/Cars";
+import Landing from "./components/auth/Landing";
+import Fuels from "./components/feul/Fuel";
+import Service from "./components/carService/Services";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -34,12 +37,15 @@ function App() {
 							element={<SignUp routing="path" path="/sign-up" />}
 						/>
 						<Route path="*" element={<RedirectToSignIn />} />
+						<Route path="/" element={<Landing />} />
 					</Routes>
 				</SignedOut>
 				<SignedIn>
 					<Routes>
 						<Route path="/dashboard" element={<Dashboard />} />
 						<Route path="/cars" element={<Cars />} />
+						<Route path="/fuel" element={<Fuels />} />
+						<Route path="/service" element={<Service />} />
 						<Route
 							path="/sign-up/*"
 							element={<SignUp routing="path" path="/sign-up" />}
