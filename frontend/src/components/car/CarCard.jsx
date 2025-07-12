@@ -8,64 +8,75 @@ import {
 	FaPalette,
 	FaGasPump,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 export default function CarCard({ car, onEdit, onDelete }) {
 	return (
-		<div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition">
-			<div className="flex justify-between items-start">
-				<div>
-					<h3 className="text-lg font-semibold text-slate-800">
+		<motion.div
+			className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-4 flex items-start gap-4 hover:shadow transition-all cursor-pointer"
+			whileHover={{ scale: 1.01 }}
+			transition={{ duration: 0.2 }}
+		>
+			<div className="flex-shrink-0 text-blue-500 text-3xl mt-2">
+				<FaCar />
+			</div>
+			<div className="flex-1">
+				<div className="flex justify-between items-center">
+					<h3 className="text-sm md:text-lg font-semibold text-slate-800">
 						{car.make} {car.model}
 					</h3>
-					<p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-						<FaCalendarAlt className="text-slate-400" /> Year:{" "}
-						{car.year}
-					</p>
+					<div className="flex gap-3">
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								onEdit();
+							}}
+							className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+							aria-label={`Edit car ${car.make} ${car.model}`}
+						>
+							<FaEdit className="inline mr-1" /> Edit
+						</button>
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								onDelete();
+							}}
+							className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition"
+							aria-label={`Delete car ${car.make} ${car.model}`}
+						>
+							<FaTrash className="inline mr-1" /> Delete
+						</button>
+					</div>
 				</div>
-				<div className="flex gap-3">
-					<button
-						onClick={onEdit}
-						className="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800 transition-all duration-200"
-						aria-label={`Edit car ${car.make} ${car.model}`}
-					>
-						<FaEdit className="w-4 h-4" />
-					</button>
-					<button
-						onClick={onDelete}
-						className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-all duration-200"
-						aria-label={`Delete car ${car.make} ${car.model}`}
-					>
-						<FaTrash className="w-4 h-4" />
-					</button>
+				<div className="mt-2 space-y-2 text-sm text-slate-700">
+					<div className="flex items-center gap-2">
+						<FaCalendarAlt className="text-slate-400" />
+						Year: <strong>{car.year}</strong>
+					</div>
+					<div className="flex items-center gap-2">
+						<FaIdCard className="text-slate-400" />
+						Registration: <strong>{car.registrationNumber}</strong>
+					</div>
+					{car.vin && (
+						<div className="flex items-center gap-2">
+							<FaBarcode className="text-slate-400" />
+							VIN: <strong>{car.vin}</strong>
+						</div>
+					)}
+					{car.color && (
+						<div className="flex items-center gap-2">
+							<FaPalette className="text-slate-400" />
+							Color: <strong>{car.color}</strong>
+						</div>
+					)}
+					{car.fuelType && (
+						<div className="flex items-center gap-2">
+							<FaGasPump className="text-slate-400" />
+							Fuel: <strong>{car.fuelType}</strong>
+						</div>
+					)}
 				</div>
 			</div>
-			<div className="mt-4 grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-700">
-				<div className="flex items-center gap-2">
-					<FaIdCard className="text-slate-400" />
-					<span className="hidden md:inline">Registration:</span>{" "}
-					{car.registrationNumber}
-				</div>
-				{car.vin && (
-					<div className="flex items-center gap-2">
-						<FaBarcode className="text-slate-400" />
-						<span className="hidden md:inline">VIN:</span> {car.vin}
-					</div>
-				)}
-				{car.color && (
-					<div className="flex items-center gap-2">
-						<FaPalette className="text-slate-400" />
-						<span className="hidden md:inline">Color:</span>{" "}
-						{car.color}
-					</div>
-				)}
-				{car.fuelType && (
-					<div className="flex items-center gap-2">
-						<FaGasPump className="text-slate-400" />
-						<span className="hidden md:inline">Fuel:</span>{" "}
-						{car.fuelType}
-					</div>
-				)}
-			</div>
-		</div>
+		</motion.div>
 	);
 }

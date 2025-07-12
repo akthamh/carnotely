@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaWrench } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import CarCard from "./CarCard";
 import CarForm from "./CarForm";
@@ -116,18 +116,18 @@ export default function Cars() {
 
 	return (
 		<DashboardLayout>
-			<div className="container mx-auto py-6">
-				<div className="flex justify-between items-center mb-6">
+			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
+				<div className="flex justify-between items-center mb-8">
 					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
 						My Cars
 					</h2>
 					<button
 						onClick={handleAddCar}
 						disabled={loadingCars}
-						className={`flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+						className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<FaPlus className="w-5 h-5" />
-						Add Car
+						<FaWrench className="w-5 h-5" />
+						<FaPlus className="w-3 h-3" />
 					</button>
 				</div>
 
@@ -136,8 +136,17 @@ export default function Cars() {
 						Loading cars...
 					</div>
 				) : cars.length === 0 ? (
-					<div className="text-center text-slate-500 text-lg animate-fade-in">
-						No cars added yet. Click "Add Car" to get started!
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						<p className="text-slate-500 text-lg mb-4">
+							No cars added yet.
+						</p>
+						<button
+							onClick={handleAddCar}
+							className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+						>
+							<FaPlus className="w-4 h-4" />
+							Add Your First Car
+						</button>
 					</div>
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

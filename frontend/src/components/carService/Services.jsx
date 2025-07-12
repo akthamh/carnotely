@@ -15,7 +15,6 @@ export default function Services() {
 	const [editingService, setEditingService] = useState(null);
 	const [loadingServices, setLoadingServices] = useState(false);
 	const [loadingCars, setLoadingCars] = useState(false);
-	const [formErrors, setFormErrors] = useState({});
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
 
@@ -50,13 +49,11 @@ export default function Services() {
 
 	const handleAddService = () => {
 		setEditingService(null);
-		setFormErrors({});
 		setIsModalOpen(true);
 	};
 
 	const handleEditService = (service) => {
 		setEditingService(service);
-		setFormErrors({});
 		setIsModalOpen(true);
 	};
 
@@ -92,112 +89,21 @@ export default function Services() {
 		}
 	};
 
-	const handleDeleteAllServices = async () => {
-		const result = await MySwal.fire({
-			title: "Type to Confirm Deletion",
-			html: `All service logs will be permanently deleted!<br /><br />
-			Please type <b style="color: #dc2626;">service log</b> below to confirm.`,
-			icon: "warning",
-			input: "text",
-			inputPlaceholder: "Type 'service log'",
-			showCancelButton: true,
-			confirmButtonColor: "#d33",
-			cancelButtonColor: "#3085d6",
-			confirmButtonText: "Delete All",
-			preConfirm: (inputValue) => {
-				if (inputValue !== "service log") {
-					MySwal.showValidationMessage(
-						"You must type 'service log' exactly to confirm"
-					);
-				}
-			},
-		});
-
-		if (result.isConfirmed && result.value === "service log") {
-			try {
-				await axiosInstance.delete("/services");
-				setServices([]);
-				MySwal.fire(
-					"Deleted!",
-					"All service logs have been removed.",
-					"success"
-				);
-			} catch (error) {
-				MySwal.fire(
-					"Error",
-					"Something went wrong while deleting.",
-					"error"
-				);
-			}
-		}
-	};
-
-	const handleFormSubmit = async (serviceData) => {
-		try {
-			setFormErrors({});
-			if (editingService) {
-				const response = await axiosInstance.patch(
-					`/services/${editingService._id}`,
-					serviceData
-				);
-				setServices((prev) =>
-					prev.map((service) =>
-						service._id === editingService._id
-							? response.data
-							: service
-					)
-				);
-				toast.success("Service log updated successfully");
-			} else {
-				const response = await axiosInstance.post(
-					"/services",
-					serviceData
-				);
-				setServices((prev) => [...prev, response.data]);
-				toast.success("Service log added successfully");
-			}
-			setIsModalOpen(false);
-			setEditingService(null);
-		} catch (error) {
-			console.error("Error saving service:", error);
-			if (error.response?.status === 400 && error.response.data) {
-				const { field, message } = error.response.data;
-				if (field && message) {
-					setFormErrors({ [field]: message });
-				} else if (error.response.data.message) {
-					setFormErrors({ form: error.response.data.message });
-				}
-			} else {
-				toast.error("Failed to save service log. Please try again.");
-			}
-		}
-	};
-
 	return (
 		<DashboardLayout>
-			<div className="container mx-auto py-6">
-				<div className="flex justify-between items-center mb-6">
+			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
+				<div className="flex justify-between items-center mb-8">
 					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
 						Service Logs
 					</h2>
-					<div className="flex gap-2">
-						<button
-							onClick={handleAddService}
-							disabled={loadingServices || loadingCars}
-							className={`flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
-						>
-							<FaPlus className="w-5 h-5" />
-							Add Service Log
-						</button>
-						<button
-							onClick={handleDeleteAllServices}
-							disabled={loadingServices || loadingCars}
-							className={`flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
-						>
-							<FaWrench className="w-5 h-5" />
-							Delete All
-						</button>
-					</div>
+					<button
+						onClick={handleAddService}
+						disabled={loadingServices || loadingCars}
+						className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<FaWrench className="w-5 h-5" />
+						<FaPlus className="w-3 h-3" />
+					</button>
 				</div>
 
 				{loadingServices || loadingCars ? (
@@ -205,12 +111,20 @@ export default function Services() {
 						Loading service logs...
 					</div>
 				) : services.length === 0 ? (
-					<div className="text-center text-slate-500 text-lg animate-fade-in">
-						No service logs added yet. Click "Add Service Log" to
-						get started!
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						<p className="text-slate-500 text-lg mb-4">
+							No service logs added yet.
+						</p>
+						<button
+							onClick={handleAddService}
+							className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+						>
+							<FaPlus className="w-4 h-4" />
+							Add Your First Service Log
+						</button>
 					</div>
 				) : (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+					<div className="space-y-4">
 						{services.map((service) => (
 							<ServiceCard
 								key={service._id}
@@ -227,13 +141,49 @@ export default function Services() {
 					<ServiceForm
 						service={editingService}
 						cars={cars}
-						onSubmit={handleFormSubmit}
+						onSubmit={async (serviceData) => {
+							try {
+								if (editingService) {
+									const response = await axiosInstance.patch(
+										`/services/${editingService._id}`,
+										serviceData
+									);
+									setServices((prev) =>
+										prev.map((service) =>
+											service._id === editingService._id
+												? response.data
+												: service
+										)
+									);
+									toast.success(
+										"Service log updated successfully"
+									);
+								} else {
+									const response = await axiosInstance.post(
+										"/services",
+										serviceData
+									);
+									setServices((prev) => [
+										...prev,
+										response.data,
+									]);
+									toast.success(
+										"Service log added successfully"
+									);
+								}
+								setIsModalOpen(false);
+								setEditingService(null);
+							} catch (error) {
+								console.error("Error saving service:", error);
+								toast.error(
+									"Failed to save service log. Please try again."
+								);
+							}
+						}}
 						onClose={() => {
 							setIsModalOpen(false);
 							setEditingService(null);
-							setFormErrors({});
 						}}
-						serverErrors={formErrors}
 					/>
 				)}
 			</div>
