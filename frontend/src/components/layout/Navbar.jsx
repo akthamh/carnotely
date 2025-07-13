@@ -11,27 +11,6 @@ import { toast } from "react-hot-toast";
 export default function Navbar() {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const { user } = useUser();
-	const { settings, setSettings, axiosInstance } = useSettings();
-	const [toggling, setToggling] = useState(false);
-
-	const toggleNightMode = async () => {
-		setToggling(true);
-		try {
-			const newSettings = { ...settings, nightMode: !settings.nightMode };
-			const res = await axiosInstance.post("/settings", newSettings);
-			setSettings(res.data);
-			toast.success(
-				`Night mode ${res.data.nightMode ? "enabled" : "disabled"}`
-			);
-		} catch (err) {
-			console.error("Error toggling night mode:", err);
-			toast.error(
-				err.response?.data?.message || "Failed to toggle night mode"
-			);
-		} finally {
-			setToggling(false);
-		}
-	};
 
 	return (
 		<nav className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm relative">
@@ -52,18 +31,7 @@ export default function Navbar() {
 								user?.fullName ||
 								user?.emailAddresses[0]?.emailAddress}
 						</span>
-						<button
-							onClick={toggleNightMode}
-							disabled={toggling}
-							className="text-slate-600 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-400 disabled:opacity-50"
-							aria-label="Toggle night mode"
-						>
-							{settings.nightMode ? (
-								<FaSun className="w-5 h-5" />
-							) : (
-								<FaMoon className="w-5 h-5" />
-							)}
-						</button>
+
 						<UserButton
 							appearance={{
 								elements: {
@@ -125,18 +93,6 @@ export default function Navbar() {
 												?.emailAddress}
 									</span>
 									<div className="flex items-center gap-3">
-										<button
-											onClick={toggleNightMode}
-											disabled={toggling}
-											className="text-slate-600 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-400 disabled:opacity-50"
-											aria-label="Toggle night mode"
-										>
-											{settings.nightMode ? (
-												<FaSun className="w-5 h-5" />
-											) : (
-												<FaMoon className="w-5 h-5" />
-											)}
-										</button>
 										<UserButton
 											appearance={{
 												elements: {
