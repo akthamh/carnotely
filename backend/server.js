@@ -26,30 +26,46 @@ const __dirname = dirname(__filename);
 app.use(express.json());
 
 // CORS configuration
-const allowedOrigins =
-	process.env.NODE_ENV === "development"
-		? ["http://localhost:5173"]
-		: ["https://car-notely.vercel.app"];
-
 app.use(
 	cors({
-		origin: function (origin, callback) {
-			if (!origin) return callback(null, true); // Allow mobile apps/postman
-			if (allowedOrigins.includes(origin)) return callback(null, true);
-			console.warn(`Blocked by CORS: ${origin}`);
-			return callback(new Error("Not allowed by CORS"));
+		origin: (origin, callback) => {
+			const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+				.split(",")
+				.map((o) => o.trim())
+				.filter(Boolean); // Ensure no empty entries
+
+			// In development, extend with additional origins if needed
+			if (process.env.NODE_ENV === "development") {
+				allowedOrigins.push(
+					"http://localhost:5173",
+					"http://localhost:5174",
+					"https://car-notely.vercel.app"
+				);
+			}
+
+			if (!origin || allowedOrigins.includes(origin)) {
+				if (process.env.NODE_ENV === "development") {
+				}
+				callback(null, true);
+			} else {
+				console.error("Blocked by CORS:", { origin, allowedOrigins });
+				callback(new Error(`Not allowed by CORS: ${origin}`));
+			}
 		},
 		credentials: true,
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		allowedHeaders: ["Content-Type", "Authorization"],
 	})
 );
-
 app.use(ClerkExpressWithAuth());
 
 // Optional health check route
 app.get("/health", (req, res) => {
 	res.json({ status: "ok" });
 });
-
+app.get("/", (req, res) => {
+	res.json({ message: "Backend is running" });
+});
 // Routes
 app.use("/api/cars", carRoutes);
 app.use("/api/fuels", fuelRoutes);
