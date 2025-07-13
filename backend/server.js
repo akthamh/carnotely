@@ -29,7 +29,7 @@ app.use(express.json());
 const allowedOrigins =
 	process.env.NODE_ENV === "development"
 		? ["http://localhost:5173"]
-		: ["https://your-production-url.com"];
+		: ["https://car-notely.vercel.app"];
 
 app.use(
 	cors({
