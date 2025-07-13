@@ -1,0 +1,20 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="#F1F5F9"/>
+  
+  <!-- Gas pump outline -->
+  <path d="M70 60H130C135 60 140 65 140 70V140C140 145 135 150 130 150H70C65 150 60 145 60 140V70C60 65 65 60 70 60Z" fill="#E2E8F0"/>
+  
+  <!-- Gas pump nozzle -->
+  <path d="M140 90H160C162 90 164 92 164 94V120C164 122 162 124 160 124H140" fill="#CBD5E1"/>
+  
+  <!-- Fuel gauge (empty) -->
+  <path d="M100 110C104.418 110 108 106.418 108 102C108 97.582 104.418 94 100 94C95.582 94 92 97.582 92 102C92 106.418 95.582 110 100 110Z" fill="#F8FAFC"/>
+  <path d="M100 94V102L95 107" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Empty text indicator -->
+  <text x="100" y="140" font-family="Arial, sans-serif" font-size="16" fill="#64748B" text-anchor="middle">Empty</text>
+  
+  <!-- Subtle shadow -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+</svg>
