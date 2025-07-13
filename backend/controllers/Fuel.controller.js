@@ -42,7 +42,7 @@ const findUserFuelById = async (fuelId, userId) => {
 // 📄 Get all fuels for logged-in user
 export const getAllFuels = async (req, res) => {
 	try {
-		const fuels = await Fuel.find({ userId: req.user._id })
+		const fuels = await Fuel.find({ userId: req.user.id })
 			.sort({ fuelDate: -1 })
 			.select("-userId")
 			.lean();
@@ -70,7 +70,7 @@ export const createFuel = async (req, res) => {
 		}
 
 		// Verify car belongs to user
-		const car = await Car.findOne({ _id: carId, userId: req.user._id });
+		const car = await Car.findOne({ _id: carId, userId: req.user.id });
 		if (!car) {
 			return res
 				.status(403)
@@ -79,7 +79,7 @@ export const createFuel = async (req, res) => {
 
 		const newFuel = new Fuel({
 			...req.body,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		const savedFuel = await newFuel.save();
@@ -114,18 +114,16 @@ export const updateFuel = async (req, res) => {
 
 		// Verify car belongs to user if carId is provided
 		if (carId) {
-			const car = await Car.findOne({ _id: carId, userId: req.user._id });
+			const car = await Car.findOne({ _id: carId, userId: req.user.id });
 			if (!car) {
-				return res
-					.status(403)
-					.json({
-						message: "Unauthorized car access or car not found",
-					});
+				return res.status(403).json({
+					message: "Unauthorized car access or car not found",
+				});
 			}
 		}
 
 		const updatedFuel = await Fuel.findOneAndUpdate(
-			{ _id: fuelId, userId: req.user._id },
+			{ _id: fuelId, userId: req.user.id },
 			updateData,
 			{ new: true }
 		).select("-userId");
@@ -154,7 +152,7 @@ export const deleteFuel = async (req, res) => {
 
 		const deletedFuel = await Fuel.findOneAndDelete({
 			_id: fuelId,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		if (!deletedFuel) {
@@ -191,7 +189,7 @@ export const getFuelById = async (req, res) => {
 // 💰 Get total fuel cost summary
 export const getFuelCostSummary = async (req, res) => {
 	try {
-		const fuels = await Fuel.find({ userId: req.user._id })
+		const fuels = await Fuel.find({ userId: req.user.id })
 			.select("fuelTotalCost")
 			.lean();
 		const totalCost = fuels.reduce(
@@ -211,23 +209,71 @@ export const getFuelCostSummary = async (req, res) => {
 // 📊 Get monthly fuel cost summary
 export const getMonthlyFuelCost = async (req, res) => {
 	try {
-		const monthlyData = await Fuel.aggregate([
-			{ $match: { userId: req.user._id } },
+		const userId = req.user.id;
+
+		const monthlyCosts = await Fuel.aggregate([
+			{ $match: { userId } },
 			{
 				$group: {
 					_id: {
 						year: { $year: "$fuelDate" },
 						month: { $month: "$fuelDate" },
 					},
-					totalFuelCost: { $sum: "$fuelTotalCost" },
-					count: { $sum: 1 },
+					totalCost: { $sum: "$fuelTotalCost" },
 				},
 			},
-			{ $sort: { "_id.year": -1, "_id.month": -1 } },
+			{
+				$project: {
+					month: {
+						$concat: [
+							{ $toString: "$_id.year" },
+							"-",
+							{
+								$cond: [
+									{ $lt: ["$_id.month", 10] },
+									{
+										$concat: [
+											"0",
+											{ $toString: "$_id.month" },
+										],
+									},
+									{ $toString: "$_id.month" },
+								],
+							},
+						],
+					},
+					totalCost: 1,
+					_id: 0,
+				},
+			},
+			{ $sort: { month: 1 } },
 		]);
-		res.status(200).json(monthlyData);
+
+		const grandTotal = monthlyCosts.reduce(
+			(acc, cur) => acc + cur.totalCost,
+			0
+		);
+
+		return res.json({
+			monthly: monthlyCosts,
+			grandTotal,
+		});
 	} catch (error) {
-		console.error("Error in getMonthlyFuelCost:", error.message);
+		console.error("getMonthlyFuelCost error:", error);
+		return res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const getLastFiveFuels = async (req, res) => {
+	try {
+		const fuels = await Fuel.find({ userId: req.user.id })
+			.sort({ fuelDate: -1 })
+			.limit(5)
+			.select("-userId")
+			.lean();
+		res.status(200).json(fuels);
+	} catch (error) {
+		console.error("Error in getLastFiveFuels:", error.message);
 		if (error.name === "CastError") {
 			return res.status(400).json({ message: "Invalid user ID" });
 		}

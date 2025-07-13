@@ -1,5 +1,6 @@
 import Car from "../models/Car.model.js";
 import Joi from "joi";
+import mongoose from "mongoose";
 
 // Validation schema for car data
 const carSchema = Joi.object({
@@ -33,12 +34,8 @@ const carSchema = Joi.object({
 export const getAllCars = async (req, res) => {
 	try {
 		const userId = req.user.id; // ✅ not _id
-		console.log("User ID from req.user:", userId);
-
 		const cars = await Car.find({ userId }).select("-userId").lean();
 		res.status(200).json(cars);
-
-		console.log("Cars:", cars);
 	} catch (error) {
 		console.error("Error in getAllCars:", error.message);
 		if (error.name === "CastError") {
@@ -91,7 +88,10 @@ export const createCar = async (req, res) => {
 		if (error.code === 11000) {
 			return res
 				.status(400)
-				.json({ message: "Registration number already exists" });
+				.json({
+					field: "registrationNumber",
+					message: "Registration number already exists",
+				});
 		}
 		res.status(500).json({ message: "Server error" });
 	}
@@ -114,7 +114,7 @@ export const updateCar = async (req, res) => {
 		}
 
 		const updatedCar = await Car.findOneAndUpdate(
-			{ _id: carId, userId: req.user._id },
+			{ _id: carId, userId: req.user.id },
 			req.body,
 			{ new: true }
 		).select("-userId");
@@ -142,13 +142,14 @@ export const updateCar = async (req, res) => {
 export const deleteCar = async (req, res) => {
 	try {
 		const carId = req.params.id;
+
 		if (!mongoose.Types.ObjectId.isValid(carId)) {
 			return res.status(400).json({ message: "Invalid car ID" });
 		}
 
 		const deletedCar = await Car.findOneAndDelete({
 			_id: carId,
-			userId: req.user._id,
+			userId: req.user.id,
 		});
 
 		if (!deletedCar) {
