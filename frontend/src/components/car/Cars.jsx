@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
-import { FaCar, FaPlus } from "react-icons/fa";
+import { FaPlus, FaWrench } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import CarCard from "./CarCard";
 import CarForm from "./CarForm";
@@ -12,37 +12,46 @@ export default function Cars() {
 	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingCar, setEditingCar] = useState(null);
+	const [loadingCars, setLoadingCars] = useState(false);
+	const [formErrors, setFormErrors] = useState({});
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
-	const [formErrors, setFormErrors] = useState({});
 
-	const axiosInstance = setupAxios(getToken);
+	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
 
 	useEffect(() => {
 		if (isSignedIn) {
 			fetchCars();
+		} else {
+			setCars([]);
 		}
-	}, [isSignedIn]);
+	}, [isSignedIn, axiosInstance]);
 
 	const fetchCars = async () => {
+		setLoadingCars(true);
 		try {
 			const response = await axiosInstance.get("/cars");
 			setCars(response.data);
 		} catch (error) {
+			toast.error("Failed to fetch cars. Please try again.");
 			console.error("Error fetching cars:", error);
-			// Error handling is managed by axios interceptor
+		} finally {
+			setLoadingCars(false);
 		}
 	};
 
 	const handleAddCar = () => {
 		setEditingCar(null);
+		setFormErrors({});
 		setIsModalOpen(true);
 	};
 
 	const handleEditCar = (car) => {
 		setEditingCar(car);
+		setFormErrors({});
 		setIsModalOpen(true);
 	};
+
 	const handleDelete = async (carId) => {
 		const result = await MySwal.fire({
 			title: "Are you sure?",
@@ -57,13 +66,8 @@ export default function Cars() {
 		if (result.isConfirmed) {
 			try {
 				await axiosInstance.delete(`/cars/${carId}`);
-				setCars(cars.filter((car) => car._id !== carId));
-				fetchCars();
-				MySwal.fire(
-					"Deleted!",
-					"The cars has been removed.",
-					"success"
-				);
+				setCars((prev) => prev.filter((car) => car._id !== carId));
+				MySwal.fire("Deleted!", "The car has been removed.", "success");
 			} catch (error) {
 				MySwal.fire(
 					"Error",
@@ -74,37 +78,31 @@ export default function Cars() {
 		}
 	};
 
-
 	const handleFormSubmit = async (carData) => {
 		try {
-			setFormErrors({}); // clear previous errors
-
+			setFormErrors({});
 			if (editingCar) {
 				const response = await axiosInstance.patch(
 					`/cars/${editingCar._id}`,
 					carData
 				);
-				setCars(
-					cars.map((car) =>
+				setCars((prev) =>
+					prev.map((car) =>
 						car._id === editingCar._id ? response.data : car
 					)
 				);
 				toast.success("Car updated successfully");
 			} else {
 				const response = await axiosInstance.post("/cars", carData);
-				setCars([...cars, response.data]);
+				setCars((prev) => [...prev, response.data]);
 				toast.success("Car added successfully");
 			}
 			setIsModalOpen(false);
 			setEditingCar(null);
 		} catch (error) {
 			console.error("Error saving car:", error);
-
-			// Check for validation error from backend
 			if (error.response?.status === 400 && error.response.data) {
-				// Assuming backend returns errors in { field: string, message: string } format
 				const { field, message } = error.response.data;
-
 				if (field && message) {
 					setFormErrors({ [field]: message });
 				} else if (error.response.data.message) {
@@ -118,22 +116,37 @@ export default function Cars() {
 
 	return (
 		<DashboardLayout>
-			<div className="container mx-auto py-6">
-				<div className="flex justify-between items-center mb-6">
-					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
+			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
+				<div className="flex justify-between items-center mb-8">
+					<h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 transition-all duration-300 hover:text-slate-700 dark:hover:text-slate-300">
 						My Cars
 					</h2>
 					<button
 						onClick={handleAddCar}
-						className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+						disabled={loadingCars}
+						className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<FaPlus className="w-5 h-5" />
-						Add Car
+						<FaWrench className="w-5 h-5" />
+						<FaPlus className="w-3 h-3" />
 					</button>
 				</div>
-				{cars.length === 0 ? (
-					<div className="text-center text-slate-500 text-lg animate-fade-in">
-						No cars added yet. Click "Add Car" to get started!
+
+				{loadingCars ? (
+					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
+						Loading cars...
+					</div>
+				) : cars.length === 0 ? (
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
+							No cars added yet.
+						</p>
+						<button
+							onClick={handleAddCar}
+							className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+						>
+							<FaPlus className="w-4 h-4" />
+							Add Your First Car
+						</button>
 					</div>
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -147,6 +160,7 @@ export default function Cars() {
 						))}
 					</div>
 				)}
+
 				{isModalOpen && (
 					<CarForm
 						car={editingCar}

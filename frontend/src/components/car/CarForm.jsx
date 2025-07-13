@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	const [formData, setFormData] = useState({
@@ -13,7 +14,6 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	});
 	const [errors, setErrors] = useState({});
 
-	// Reset formData and errors when car changes (for edit mode)
 	useEffect(() => {
 		setFormData({
 			make: car?.make || "",
@@ -27,16 +27,19 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 		setErrors({});
 	}, [car]);
 
-	const combinedErrors = { ...errors, ...serverErrors };
+	useEffect(() => {
+		const handleEscape = (e) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", handleEscape);
+		return () => document.removeEventListener("keydown", handleEscape);
+	}, [onClose]);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setFormData({ ...formData, [name]: value });
-
 		if (errors[name] || serverErrors[name]) {
 			setErrors({ ...errors, [name]: null });
-			// We cannot clear serverErrors here directly because it lives in parent,
-			// but on next form submit it will be cleared in parent anyway.
 		}
 	};
 
@@ -49,15 +52,24 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 				const yearNum = parseInt(val);
 				const currentYear = new Date().getFullYear();
 				if (yearNum < 1886 || yearNum > currentYear)
-					return "Year must be between 1886 and " + currentYear;
+					return `Year must be between 1886 and ${currentYear}`;
 				return null;
 			},
 			registrationNumber: (val) =>
 				!val ? "Registration number is required" : null,
+			vin: (val) =>
+				val && val.length > 17
+					? "VIN must be 17 characters or less"
+					: null,
+			color: (val) =>
+				val && val.length > 50
+					? "Color must be 50 characters or less"
+					: null,
+			fuelType: (val) => (!val ? "Fuel type is required" : null),
 		};
 		const newErrors = {};
-		Object.keys(schema).forEach((key) => {
-			const error = schema[key](formData[key]);
+		Object.entries(schema).forEach(([key, validate]) => {
+			const error = validate(formData[key]);
 			if (error) newErrors[key] = error;
 		});
 		return newErrors;
@@ -74,151 +86,166 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-			<div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md transform transition-all duration-300 scale-100">
-				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-2xl font-bold text-slate-100">
-						{car ? "Edit Car" : "Add Car"}
-					</h2>
+		<AnimatePresence>
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				exit={{ opacity: 0 }}
+				className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto"
+			>
+				<motion.div
+					initial={{ scale: 0.95, opacity: 0 }}
+					animate={{ scale: 1, opacity: 1 }}
+					exit={{ scale: 0.95, opacity: 0 }}
+					transition={{ duration: 0.2 }}
+					className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 w-full max-w-md sm:max-w-lg max-h-[90vh] shadow-2xl relative overflow-y-auto"
+				>
+					<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-blue-400" />
 					<button
 						onClick={onClose}
-						className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 transition-all duration-200"
+						className="absolute top-3 right-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+						aria-label="Close modal"
 					>
-						<FaTimes className="w-5 h-5 text-slate-300" />
+						<FaTimes className="w-5 h-5" />
 					</button>
-				</div>
+					<h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white mb-4 sm:mb-6">
+						{car ? "Edit Car" : "Add Car"}
+					</h2>
+					{serverErrors.form && (
+						<p className="text-red-500 mb-4 text-center font-semibold">
+							{serverErrors.form}
+						</p>
+					)}
+					<form
+						onSubmit={handleSubmit}
+						className="space-y-4"
+						noValidate
+					>
+						{[
+							{ label: "Make", name: "make", type: "text" },
+							{ label: "Model", name: "model", type: "text" },
+						].map(({ label, name, type }) => (
+							<div key={name}>
+								<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+									{label}
+								</label>
+								<input
+									type={type}
+									name={name}
+									value={formData[name]}
+									onChange={handleChange}
+									className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+								{(errors[name] || serverErrors[name]) && (
+									<p className="text-red-500 text-xs mt-1">
+										{errors[name] || serverErrors[name]}
+									</p>
+								)}
+							</div>
+						))}
 
-				{combinedErrors.form && (
-					<p className="text-red-400 mb-4 text-center font-semibold">
-						{combinedErrors.form}
-					</p>
-				)}
+						<div className="sm:grid sm:grid-cols-2 sm:gap-4">
+							{[
+								{ label: "Year", name: "year", type: "number" },
+								{
+									label: "Registration Number",
+									name: "registrationNumber",
+									type: "text",
+								},
+							].map(({ label, name, type }) => (
+								<div key={name}>
+									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+										{label}
+									</label>
+									<input
+										type={type}
+										name={name}
+										value={formData[name]}
+										onChange={handleChange}
+										className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+									{(errors[name] || serverErrors[name]) && (
+										<p className="text-red-500 text-xs mt-1">
+											{errors[name] || serverErrors[name]}
+										</p>
+									)}
+								</div>
+							))}
+						</div>
 
-				<form onSubmit={handleSubmit} noValidate>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Make
-						</label>
-						<input
-							type="text"
-							name="make"
-							value={formData.make}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.make && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.make}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Model
-						</label>
-						<input
-							type="text"
-							name="model"
-							value={formData.model}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.model && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.model}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Year
-						</label>
-						<input
-							type="number"
-							name="year"
-							value={formData.year}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.year && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.year}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Registration Number
-						</label>
-						<input
-							type="text"
-							name="registrationNumber"
-							value={formData.registrationNumber}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-						{combinedErrors.registrationNumber && (
-							<p className="text-red-400 text-sm mt-1">
-								{combinedErrors.registrationNumber}
-							</p>
-						)}
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">VIN</label>
-						<input
-							type="text"
-							name="vin"
-							value={formData.vin}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-					</div>
-					<div className="mb-4">
-						<label className="block text-slate-300 mb-1">
-							Color
-						</label>
-						<input
-							type="text"
-							name="color"
-							value={formData.color}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						/>
-					</div>
-					<div className="mb-6">
-						<label className="block text-slate-300 mb-1">
-							Fuel Type
-						</label>
-						<select
-							name="fuelType"
-							value={formData.fuelType}
-							onChange={handleChange}
-							className="w-full p-2 rounded-lg bg-slate-900 text-white border border-slate-600 focus:outline-none focus:border-slate-400 transition-all duration-200"
-						>
-							<option value="">Select fuel type</option>
-							<option value="Petrol">Petrol</option>
-							<option value="Diesel">Diesel</option>
-							<option value="Electric">Electric</option>
-							<option value="Hybrid">Hybrid</option>
-						</select>
-					</div>
-					<div className="flex justify-end gap-3">
-						<button
-							type="button"
-							onClick={onClose}
-							className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-all duration-200"
-						>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gradient-to-r hover:from-slate-500 hover:to-slate-600 transition-all duration-300"
-						>
-							{car ? "Update Car" : "Add Car"}
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
+						{[
+							{
+								label: "VIN (Optional)",
+								name: "vin",
+								type: "text",
+							},
+							{
+								label: "Color (Optional)",
+								name: "color",
+								type: "text",
+							},
+							{
+								label: "Fuel Type",
+								name: "fuelType",
+								type: "select",
+							},
+						].map(({ label, name, type }) => (
+							<div key={name}>
+								<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+									{label}
+								</label>
+								{type === "select" ? (
+									<select
+										name={name}
+										value={formData[name]}
+										onChange={handleChange}
+										className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+									>
+										<option value="">
+											Select fuel type
+										</option>
+										<option value="Petrol">Petrol</option>
+										<option value="Diesel">Diesel</option>
+										<option value="Electric">
+											Electric
+										</option>
+										<option value="Hybrid">Hybrid</option>
+									</select>
+								) : (
+									<input
+										type={type}
+										name={name}
+										value={formData[name]}
+										onChange={handleChange}
+										className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								)}
+								{(errors[name] || serverErrors[name]) && (
+									<p className="text-red-500 text-xs mt-1">
+										{errors[name] || serverErrors[name]}
+									</p>
+								)}
+							</div>
+						))}
+
+						<div className="flex justify-end gap-3 pt-4">
+							<button
+								type="button"
+								onClick={onClose}
+								className="px-3 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								className="px-3 sm:px-4 py-2 rounded-lg bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 transition-colors"
+							>
+								{car ? "Update" : "Add"}
+							</button>
+						</div>
+					</form>
+				</motion.div>
+			</motion.div>
+		</AnimatePresence>
 	);
 }
