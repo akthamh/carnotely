@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { setupAxios } from "../../config/axios";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaGasPump } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import FuelCard from "./FuelCard";
-import FuelForm from "./fuelForm";
+import FuelForm from "./FuelForm";
 import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
-
 export default function Fuels() {
 	const [fuels, setFuels] = useState([]);
 	const [cars, setCars] = useState([]);
@@ -120,32 +119,41 @@ export default function Fuels() {
 
 	return (
 		<DashboardLayout>
-			<div className="container mx-auto py-6">
-				<div className="flex justify-between items-center mb-6">
-					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
-						Fuel Logs 
+			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
+				<div className="flex justify-between items-center mb-8">
+					<h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 transition-all duration-300 hover:text-slate-700 dark:hover:text-slate-300">
+						Fuel Logs
 					</h2>
 					<button
 						onClick={handleAddFuel}
 						disabled={loadingFuels || loadingCars}
-						className={`flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+						className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<FaPlus className="w-5 h-5" />
-						Add Fuel Log
+						<FaGasPump className="w-5 h-5" />
+						<FaPlus className="w-3 h-3" />
 					</button>
 				</div>
 
 				{loadingFuels || loadingCars ? (
-					<div className="text-center text-slate-500 text-lg animate-pulse">
+					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
 						Loading fuel logs...
 					</div>
 				) : fuels.length === 0 ? (
-					<div className="text-center text-slate-500 text-lg animate-fade-in">
-						No fuel logs added yet. Click "Add Fuel Log" to get
-						started!
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						{/* <EmptyIllustration className="w-48 h-48 mb-6 opacity-80" /> */}
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
+							No fuel logs added yet.
+						</p>
+						<button
+							onClick={handleAddFuel}
+							className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+						>
+							<FaPlus className="w-4 h-4" />
+							Add Your First Fuel Log
+						</button>
 					</div>
 				) : (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+					<div className="space-y-4">
 						{fuels.map((fuel) => (
 							<FuelCard
 								key={fuel._id}

@@ -8,64 +8,51 @@ import {
 	FaPalette,
 	FaGasPump,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 export default function CarCard({ car, onEdit, onDelete }) {
 	return (
-		<div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition">
-			<div className="flex justify-between items-start">
-				<div>
-					<h3 className="text-lg font-semibold text-slate-800">
-						{car.make} {car.model}
-					</h3>
-					<p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-						<FaCalendarAlt className="text-slate-400" /> Year:{" "}
-						{car.year}
-					</p>
-				</div>
-				<div className="flex gap-3">
-					<button
-						onClick={onEdit}
-						className="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800 transition-all duration-200"
-						aria-label={`Edit car ${car.make} ${car.model}`}
-					>
-						<FaEdit className="w-4 h-4" />
-					</button>
-					<button
-						onClick={onDelete}
-						className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-all duration-200"
-						aria-label={`Delete car ${car.make} ${car.model}`}
-					>
-						<FaTrash className="w-4 h-4" />
-					</button>
+		<motion.div
+			className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 mb-4 flex items-start gap-4 hover:shadow transition-all cursor-pointer"
+			whileHover={{ scale: 1.01 }}
+			transition={{ duration: 0.2 }}
+		>
+			<div className="flex-shrink-0 text-blue-500 dark:text-blue-400 text-3xl mt-2">
+				<FaCar />
+			</div>
+			<div className="flex-1 min-w-0">
+				<h3 className="text-sm md:text-lg font-semibold text-slate-800 dark:text-white truncate">
+					{car.make} {car.model}
+				</h3>
+				<div className="mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+					<div className="flex items-center gap-2">
+						<FaCalendarAlt className="text-slate-400 dark:text-slate-500" />
+						Year: <strong>{car.year}</strong>
+					</div>
+					<div className="flex items-center gap-2">
+						<FaIdCard className="text-slate-400 dark:text-slate-500" />
+						Plate: <strong>{car.licensePlate}</strong>
+					</div>
+					<div className="flex items-center gap-2">
+						<FaPalette className="text-slate-400 dark:text-slate-500" />
+						Color: <strong>{car.color}</strong>
+					</div>
 				</div>
 			</div>
-			<div className="mt-4 grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-700">
-				<div className="flex items-center gap-2">
-					<FaIdCard className="text-slate-400" />
-					<span className="hidden md:inline">Registration:</span>{" "}
-					{car.registrationNumber}
-				</div>
-				{car.vin && (
-					<div className="flex items-center gap-2">
-						<FaBarcode className="text-slate-400" />
-						<span className="hidden md:inline">VIN:</span> {car.vin}
-					</div>
-				)}
-				{car.color && (
-					<div className="flex items-center gap-2">
-						<FaPalette className="text-slate-400" />
-						<span className="hidden md:inline">Color:</span>{" "}
-						{car.color}
-					</div>
-				)}
-				{car.fuelType && (
-					<div className="flex items-center gap-2">
-						<FaGasPump className="text-slate-400" />
-						<span className="hidden md:inline">Fuel:</span>{" "}
-						{car.fuelType}
-					</div>
-				)}
+			<div className="flex flex-col gap-2 ml-4 mt-2">
+				<button
+					onClick={onEdit}
+					className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded"
+				>
+					<FaEdit />
+				</button>
+				<button
+					onClick={onDelete}
+					className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 px-3 py-1 rounded"
+				>
+					<FaTrash />
+				</button>
 			</div>
-		</div>
+		</motion.div>
 	);
 }

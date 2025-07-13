@@ -1,3 +1,4 @@
+// frontend/src/components/layout/Sidebar.jsx
 import { NavLink } from "react-router-dom";
 import {
 	FaTachometerAlt,
@@ -7,6 +8,7 @@ import {
 	FaCog,
 	FaWrench,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 export const links = [
 	{ to: "/dashboard", label: "Dashboard", icon: <FaTachometerAlt /> },
@@ -19,22 +21,35 @@ export const links = [
 
 export default function Sidebar() {
 	return (
-		<aside className="w-60 bg-white border-r border-gray-200 hidden md:block min-h-screen">
-			<div className="p-4 text-xl font-semibold text-gray-800">Menu</div>
+		<aside className="w-60 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 hidden md:block min-h-screen">
+			<motion.div
+				className="p-4 text-xl font-bold text-slate-800 dark:text-slate-100 animate-fade-in"
+				initial={{ opacity: 0, x: -20 }}
+				animate={{ opacity: 1, x: 0 }}
+				transition={{ duration: 0.4 }}
+			>
+				Menu
+			</motion.div>
 			<nav className="flex flex-col gap-1 px-2">
 				{links.map(({ to, label, icon }) => (
 					<NavLink
 						key={to}
 						to={to}
 						className={({ isActive }) =>
-							`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+							`flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 ${
 								isActive
-									? "bg-indigo-100 text-indigo-700 font-medium"
-									: "text-gray-700 hover:bg-gray-100"
+									? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium"
+									: "text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900"
 							}`
 						}
 					>
-						<span className="text-lg">{icon}</span>
+						<motion.span
+							className="text-lg"
+							whileHover={{ scale: 1.1 }}
+							transition={{ duration: 0.2 }}
+						>
+							{icon}
+						</motion.span>
 						{label}
 					</NavLink>
 				))}
