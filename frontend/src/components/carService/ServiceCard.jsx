@@ -78,7 +78,7 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 
 	return (
 		<motion.div
-			className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-4 flex items-start gap-4 hover:shadow transition-all cursor-pointer"
+			className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 mb-4 flex items-start gap-4 hover:shadow transition-all cursor-pointer"
 			onClick={() => setIsOpen(!isOpen)}
 			whileHover={{ scale: 1.01 }}
 			transition={{ duration: 0.2 }}
@@ -89,21 +89,21 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 
 			<div className="flex-1">
 				<div className="flex justify-between items-center">
-					<h3 className="text-sm md:text-lg font-semibold text-slate-800">
+					<h3 className="text-sm md:text-lg font-semibold text-slate-800 dark:text-slate-100">
 						<span className="text-sm hidden sm:inline">
 							{carName} -
 						</span>{" "}
 						{service.serviceName}
 					</h3>
-					<span className="text-sm text-slate-500">
+					<span className="text-sm text-slate-500 dark:text-slate-400">
 						<FaCalendarAlt className="inline mr-1" />
 						{formattedDate}
 					</span>
 				</div>
 
-				<div className="text-sm text-slate-600 mt-1">
+				<div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
 					${totalCost} |{" "}
-					<span className="text-indigo-700">
+					<span className="text-indigo-700 dark:text-indigo-400">
 						{service.mileage} km
 					</span>
 				</div>
@@ -115,39 +115,39 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 							animate={{ height: "auto", opacity: 1 }}
 							exit={{ height: 0, opacity: 0 }}
 							transition={{ duration: 0.3, ease: "easeInOut" }}
-							className="mt-4 space-y-2 text-sm text-slate-700 border-t pt-3 overflow-hidden"
+							className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300 border-t dark:border-slate-600 pt-3 overflow-hidden"
 						>
 							<div className="flex items-center gap-2">
-								<FaCogs className="text-slate-400" />
+								<FaCogs className="text-slate-400 dark:text-slate-500" />
 								Parts Cost:{" "}
 								<strong>
 									${parseFloat(service.partsCost).toFixed(2)}
 								</strong>
 							</div>
 							<div className="flex items-center gap-2">
-								<FaUserCog className="text-slate-400" />
+								<FaUserCog className="text-slate-400 dark:text-slate-500" />
 								Labor Cost:{" "}
 								<strong>
 									${parseFloat(service.laborCost).toFixed(2)}
 								</strong>
 							</div>
 							<div className="flex items-center gap-2">
-								<FaDollarSign className="text-slate-400" />
+								<FaDollarSign className="text-slate-400 dark:text-slate-500" />
 								Total Cost: <strong>${totalCost}</strong>
 							</div>
 							<div className="flex items-center gap-2">
-								<FaRoad className="text-slate-400" />
+								<FaRoad className="text-slate-400 dark:text-slate-500" />
 								Mileage: <strong>{service.mileage} km</strong>
 							</div>
 							<div className="flex items-center gap-2">
-								<FaBuilding className="text-slate-400" />
+								<FaBuilding className="text-slate-400 dark:text-slate-500" />
 								Service Center:{" "}
 								<strong>
 									{service.serviceCenterName || "N/A"}
 								</strong>
 							</div>
 							<div className="flex items-start gap-2">
-								<FaComment className="text-slate-400 mt-1" />
+								<FaComment className="text-slate-400 dark:text-slate-500 mt-1" />
 								<i>{service.comment || "No comment"}</i>
 							</div>
 
@@ -157,7 +157,7 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 										e.stopPropagation();
 										onEdit();
 									}}
-									className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+									className="px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
 								>
 									<FaEdit className="inline mr-1" /> Edit
 								</button>
@@ -166,7 +166,7 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 										e.stopPropagation();
 										onDelete();
 									}}
-									className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition"
+									className="px-3 py-1 rounded-lg bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition"
 								>
 									<FaTrash className="inline mr-1" /> Delete
 								</button>

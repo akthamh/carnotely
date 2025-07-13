@@ -119,9 +119,9 @@ export default function Fuels() {
 
 	return (
 		<DashboardLayout>
-			<div className="container mx-auto py-6  sm:px-6 lg:px-8">
+			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
 				<div className="flex justify-between items-center mb-8">
-					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
+					<h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 transition-all duration-300 hover:text-slate-700 dark:hover:text-slate-300">
 						Fuel Logs
 					</h2>
 					<button
@@ -135,13 +135,13 @@ export default function Fuels() {
 				</div>
 
 				{loadingFuels || loadingCars ? (
-					<div className="text-center text-slate-500 text-lg animate-pulse">
+					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
 						Loading fuel logs...
 					</div>
 				) : fuels.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
 						{/* <EmptyIllustration className="w-48 h-48 mb-6 opacity-80" /> */}
-						<p className="text-slate-500 text-lg mb-4">
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
 							No fuel logs added yet.
 						</p>
 						<button

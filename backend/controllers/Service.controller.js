@@ -181,3 +181,38 @@ export const deleteAllServices = async (req, res) => {
 		res.status(500).json({ message: "Server error" });
 	}
 };
+
+export const getMonthlyServiceCost = async (req, res) => {
+	try {
+		const userId = req.user.id;
+
+		const monthlyCosts = await Service.aggregate([
+			{ $match: { userId } },
+			{
+				$group: {
+					_id: {
+						$dateToString: {
+							format: "%Y-%m",
+							date: "$serviceDate",
+						},
+					},
+					totalCost: { $sum: "$totalCost" },
+				},
+			},
+			{ $sort: { _id: 1 } },
+		]);
+
+		const grandTotal = monthlyCosts.reduce(
+			(acc, cur) => acc + cur.totalCost,
+			0
+		);
+
+		return res.json({
+			monthly: monthlyCosts,
+			grandTotal,
+		});
+	} catch (error) {
+		console.error("getMonthlyServiceCost error:", error);
+		return res.status(500).json({ message: "Server error" });
+	}
+};

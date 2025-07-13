@@ -9,6 +9,7 @@ import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 import carRoutes from "./routes/Car.routes.js";
 import fuelRoutes from "./routes/Fuel.routes.js";
 import serviceRoutes from "./routes/Service.routes.js";
+import userSettingsRoutes from "./routes/UserSetting.routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -44,7 +45,6 @@ app.use(
 
 app.use(ClerkExpressWithAuth());
 
-
 // Optional health check route
 app.get("/health", (req, res) => {
 	res.json({ status: "ok" });
@@ -54,6 +54,7 @@ app.get("/health", (req, res) => {
 app.use("/api/cars", carRoutes);
 app.use("/api/fuels", fuelRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/settings", userSettingsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

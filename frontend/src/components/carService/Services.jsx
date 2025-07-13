@@ -93,7 +93,7 @@ export default function Services() {
 		<DashboardLayout>
 			<div className="container mx-auto py-6 sm:px-6 lg:px-8">
 				<div className="flex justify-between items-center mb-8">
-					<h2 className="text-3xl font-bold text-slate-800 transition-all duration-300 hover:text-slate-700">
+					<h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 transition-all duration-300 hover:text-slate-700 dark:hover:text-slate-300">
 						Service Logs
 					</h2>
 					<button
@@ -107,12 +107,12 @@ export default function Services() {
 				</div>
 
 				{loadingServices || loadingCars ? (
-					<div className="text-center text-slate-500 text-lg animate-pulse">
+					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
 						Loading service logs...
 					</div>
 				) : services.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
-						<p className="text-slate-500 text-lg mb-4">
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
 							No service logs added yet.
 						</p>
 						<button

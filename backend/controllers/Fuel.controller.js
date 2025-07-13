@@ -189,7 +189,7 @@ export const getFuelById = async (req, res) => {
 // 💰 Get total fuel cost summary
 export const getFuelCostSummary = async (req, res) => {
 	try {
-		const fuels = await Fuel.find({ userId: req.user._id })
+		const fuels = await Fuel.find({ userId: req.user.id })
 			.select("fuelTotalCost")
 			.lean();
 		const totalCost = fuels.reduce(
@@ -209,23 +209,71 @@ export const getFuelCostSummary = async (req, res) => {
 // 📊 Get monthly fuel cost summary
 export const getMonthlyFuelCost = async (req, res) => {
 	try {
-		const monthlyData = await Fuel.aggregate([
-			{ $match: { userId: req.user._id } },
+		const userId = req.user.id;
+
+		const monthlyCosts = await Fuel.aggregate([
+			{ $match: { userId } },
 			{
 				$group: {
 					_id: {
 						year: { $year: "$fuelDate" },
 						month: { $month: "$fuelDate" },
 					},
-					totalFuelCost: { $sum: "$fuelTotalCost" },
-					count: { $sum: 1 },
+					totalCost: { $sum: "$fuelTotalCost" },
 				},
 			},
-			{ $sort: { "_id.year": -1, "_id.month": -1 } },
+			{
+				$project: {
+					month: {
+						$concat: [
+							{ $toString: "$_id.year" },
+							"-",
+							{
+								$cond: [
+									{ $lt: ["$_id.month", 10] },
+									{
+										$concat: [
+											"0",
+											{ $toString: "$_id.month" },
+										],
+									},
+									{ $toString: "$_id.month" },
+								],
+							},
+						],
+					},
+					totalCost: 1,
+					_id: 0,
+				},
+			},
+			{ $sort: { month: 1 } },
 		]);
-		res.status(200).json(monthlyData);
+
+		const grandTotal = monthlyCosts.reduce(
+			(acc, cur) => acc + cur.totalCost,
+			0
+		);
+
+		return res.json({
+			monthly: monthlyCosts,
+			grandTotal,
+		});
 	} catch (error) {
-		console.error("Error in getMonthlyFuelCost:", error.message);
+		console.error("getMonthlyFuelCost error:", error);
+		return res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const getLastFiveFuels = async (req, res) => {
+	try {
+		const fuels = await Fuel.find({ userId: req.user.id })
+			.sort({ fuelDate: -1 })
+			.limit(5)
+			.select("-userId")
+			.lean();
+		res.status(200).json(fuels);
+	} catch (error) {
+		console.error("Error in getLastFiveFuels:", error.message);
 		if (error.name === "CastError") {
 			return res.status(400).json({ message: "Invalid user ID" });
 		}

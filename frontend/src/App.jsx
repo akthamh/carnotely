@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import {
@@ -12,6 +13,8 @@ import Cars from "./components/car/Cars";
 import Landing from "./components/auth/Landing";
 import Fuels from "./components/feul/Fuel";
 import Service from "./components/carService/Services";
+import Settings from "./components/userSettings/Settings";
+import { SettingsProvider } from "./context/SettingsContext";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -28,32 +31,39 @@ function App() {
 				cssLayerName: "clerk",
 			}}
 		>
-			<Router>
-				<Toaster />
-				<SignedOut>
-					<Routes>
-						<Route
-							path="/sign-up/*"
-							element={<SignUp routing="path" path="/sign-up" />}
-						/>
-						<Route path="*" element={<RedirectToSignIn />} />
-						<Route path="/" element={<Landing />} />
-					</Routes>
-				</SignedOut>
-				<SignedIn>
-					<Routes>
-						<Route path="/dashboard" element={<Dashboard />} />
-						<Route path="/cars" element={<Cars />} />
-						<Route path="/fuel" element={<Fuels />} />
-						<Route path="/service" element={<Service />} />
-						<Route
-							path="/sign-up/*"
-							element={<SignUp routing="path" path="/sign-up" />}
-						/>
-						<Route path="*" element={<Dashboard />} />
-					</Routes>
-				</SignedIn>
-			</Router>
+			<SettingsProvider>
+				<Router>
+					<Toaster />
+					<SignedOut>
+						<Routes>
+							<Route
+								path="/sign-up/*"
+								element={
+									<SignUp routing="path" path="/sign-up" />
+								}
+							/>
+							<Route path="*" element={<RedirectToSignIn />} />
+							<Route path="/" element={<Landing />} />
+						</Routes>
+					</SignedOut>
+					<SignedIn>
+						<Routes>
+							<Route path="/dashboard" element={<Dashboard />} />
+							<Route path="/cars" element={<Cars />} />
+							<Route path="/fuel" element={<Fuels />} />
+							<Route path="/service" element={<Service />} />
+							<Route path="/settings" element={<Settings />} />
+							<Route
+								path="/sign-up/*"
+								element={
+									<SignUp routing="path" path="/sign-up" />
+								}
+							/>
+							<Route path="*" element={<Dashboard />} />
+						</Routes>
+					</SignedIn>
+				</Router>
+			</SettingsProvider>
 		</ClerkProvider>
 	);
 }
