@@ -25,30 +25,30 @@ const __dirname = dirname(__filename);
 // Parse incoming JSON
 app.use(express.json());
 
-// CORS configuration
+// ✅ Fixed CORS configuration
 app.use(
 	cors({
 		origin: (origin, callback) => {
 			const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
 				.split(",")
 				.map((o) => o.trim())
-				.filter(Boolean); // Ensure no empty entries
+				.filter(Boolean);
 
-			// In development, extend with additional origins if needed
+			// ✅ Always allow your production frontend
+			allowedOrigins.push("https://car-notely.vercel.app");
+
+			// ✅ Allow localhost in development
 			if (process.env.NODE_ENV === "development") {
 				allowedOrigins.push(
 					"http://localhost:5173",
-					"http://localhost:5174",
-					"https://car-notely.vercel.app"
+					"http://localhost:5174"
 				);
 			}
 
 			if (!origin || allowedOrigins.includes(origin)) {
-				if (process.env.NODE_ENV === "development") {
-				}
 				callback(null, true);
 			} else {
-				console.error("Blocked by CORS:", { origin, allowedOrigins });
+				console.error("❌ Blocked by CORS:", origin);
 				callback(new Error(`Not allowed by CORS: ${origin}`));
 			}
 		},
@@ -57,31 +57,39 @@ app.use(
 		allowedHeaders: ["Content-Type", "Authorization"],
 	})
 );
+
+// ✅ Clerk middleware
 app.use(ClerkExpressWithAuth());
 
-// Optional health check route
+// ✅ Optional health check
 app.get("/health", (req, res) => {
 	res.json({ status: "ok" });
 });
+
 app.get("/", (req, res) => {
 	res.json({ message: "Backend is running" });
 });
-// Routes
+
+// ✅ Your API routes
 app.use("/api/cars", carRoutes);
 app.use("/api/fuels", fuelRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/settings", userSettingsRoutes);
 
-// Error handling middleware
+// ✅ Improved error handler that includes CORS headers
 app.use((err, req, res, next) => {
-	console.error(err.stack);
-	res.status(500).json({ message: "Something went wrong!" });
+	console.error("🔥 Express error:", err);
+
+	// Set CORS headers so frontend can read the error response
+	res.status(500)
+		.set("Access-Control-Allow-Origin", req.headers.origin || "*")
+		.set("Access-Control-Allow-Credentials", "true")
+		.json({ message: "Something went wrong!" });
 });
 
-// Connect to database
+// ✅ Connect to DB and start server
 connectToDatabase();
 
-// Start server
 app.listen(port, () => {
 	console.log(`✅ Server is running on port ${port}`);
 });
