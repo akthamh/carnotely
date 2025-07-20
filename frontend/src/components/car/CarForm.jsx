@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 	const [formData, setFormData] = useState({

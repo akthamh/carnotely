@@ -19,3 +19,12 @@
   --color-slate-800: #1e293b; /* Dark background for light mode */
   --color-slate-900: #0f172a; /* Darker background for dark mode */
 }
+
+/* Smooth theme transition */
+html {
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+	transition: background-color 0.3s ease, color 0.3s ease;
+}

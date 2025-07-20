@@ -7,6 +7,7 @@ import ServiceCard from "./ServiceCard";
 import ServiceForm from "./ServiceForm";
 import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function Services() {
 	const [services, setServices] = useState([]);
@@ -17,6 +18,7 @@ export default function Services() {
 	const [loadingCars, setLoadingCars] = useState(false);
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
+	const { settings } = useSettings();
 
 	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
 
@@ -130,6 +132,7 @@ export default function Services() {
 								key={service._id}
 								service={service}
 								cars={cars}
+								settings={settings}
 								onEdit={() => handleEditService(service)}
 								onDelete={() => handleDelete(service._id)}
 							/>
@@ -141,6 +144,7 @@ export default function Services() {
 					<ServiceForm
 						service={editingService}
 						cars={cars}
+						settings={settings}
 						onSubmit={async (serviceData) => {
 							try {
 								if (editingService) {

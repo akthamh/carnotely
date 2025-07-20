@@ -14,7 +14,7 @@ import Landing from "./components/auth/Landing";
 import Fuels from "./components/feul/Fuel";
 import Service from "./components/carService/Services";
 import Settings from "./components/userSettings/Settings";
-import { SettingsProvider } from "./context/SettingsContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 

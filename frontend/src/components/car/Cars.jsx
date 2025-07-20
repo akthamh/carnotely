@@ -7,6 +7,7 @@ import CarCard from "./CarCard";
 import CarForm from "./CarForm";
 import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function Cars() {
 	const [cars, setCars] = useState([]);
@@ -16,6 +17,7 @@ export default function Cars() {
 	const [formErrors, setFormErrors] = useState({});
 	const { isSignedIn } = useUser();
 	const { getToken } = useAuth();
+	const { settings, updateSettings } = useSettings();
 
 	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
 
@@ -55,7 +57,10 @@ export default function Cars() {
 	const handleDelete = async (carId) => {
 		const result = await MySwal.fire({
 			title: "Are you sure?",
-			text: "This car will be permanently deleted!",
+			text:
+				settings.defaultCarId === carId
+					? "This is your default car. Deleting it will reset the default car setting. Continue?"
+					: "This car will be permanently deleted!",
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#d33",
@@ -67,6 +72,16 @@ export default function Cars() {
 			try {
 				await axiosInstance.delete(`/cars/${carId}`);
 				setCars((prev) => prev.filter((car) => car._id !== carId));
+				if (settings.defaultCarId === carId) {
+					const newDefaultCarId =
+						cars.length > 1
+							? cars.find((c) => c._id !== carId)._id
+							: null;
+					await updateSettings({
+						...settings,
+						defaultCarId: newDefaultCarId,
+					});
+				}
 				MySwal.fire("Deleted!", "The car has been removed.", "success");
 			} catch (error) {
 				MySwal.fire(
@@ -95,6 +110,12 @@ export default function Cars() {
 			} else {
 				const response = await axiosInstance.post("/cars", carData);
 				setCars((prev) => [...prev, response.data]);
+				if (!settings.defaultCarId) {
+					await updateSettings({
+						...settings,
+						defaultCarId: response.data._id,
+					});
+				}
 				toast.success("Car added successfully");
 			}
 			setIsModalOpen(false);

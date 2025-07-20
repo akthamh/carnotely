@@ -14,7 +14,6 @@ const settingsSchema = Joi.object({
 	dateFormat: Joi.string()
 		.valid("DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD")
 		.optional(),
-	nightMode: Joi.boolean().optional(),
 	defaultCarId: Joi.string().optional().allow(null),
 });
 
@@ -100,10 +99,6 @@ export const createOrUpdateSettings = async (req, res) => {
 				distanceUnit: settingsData.distanceUnit || "km",
 				timeFormat: settingsData.timeFormat || "24h",
 				dateFormat: settingsData.dateFormat || "DD/MM/YYYY",
-				nightMode:
-					settingsData.nightMode !== undefined
-						? settingsData.nightMode
-						: false,
 				defaultCarId,
 			});
 			await settings.populate("defaultCarId");
