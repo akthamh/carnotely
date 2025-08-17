@@ -9,8 +9,11 @@ import {
 	FaGasPump,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function CarCard({ car, onEdit, onDelete }) {
+	const { settings } = useSettings();
+
 	return (
 		<motion.div
 			className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 mb-4 flex items-start gap-4 hover:shadow transition-all cursor-pointer"
@@ -21,9 +24,16 @@ export default function CarCard({ car, onEdit, onDelete }) {
 				<FaCar />
 			</div>
 			<div className="flex-1 min-w-0">
-				<h3 className="text-sm md:text-lg font-semibold text-slate-800 dark:text-white truncate">
-					{car.make} {car.model}
-				</h3>
+				<div className="flex items-center gap-2">
+					<h3 className="text-sm md:text-lg font-semibold text-slate-800 dark:text-white truncate">
+						{car.make} {car.model}
+					</h3>
+					{settings.defaultCarId === car._id && (
+						<span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 px-2 py-1 rounded-full">
+							Default
+						</span>
+					)}
+				</div>
 				<div className="mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
 					<div className="flex items-center gap-2">
 						<FaCalendarAlt className="text-slate-400 dark:text-slate-500" />
@@ -31,7 +41,7 @@ export default function CarCard({ car, onEdit, onDelete }) {
 					</div>
 					<div className="flex items-center gap-2">
 						<FaIdCard className="text-slate-400 dark:text-slate-500" />
-						Plate: <strong>{car.licensePlate}</strong>
+						Plate: <strong>{car.registrationNumber}</strong>
 					</div>
 					<div className="flex items-center gap-2">
 						<FaPalette className="text-slate-400 dark:text-slate-500" />

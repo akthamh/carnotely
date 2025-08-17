@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatCurrency } from "../../utils/formatCurrency";
+import { useData } from "../../contexts/DataContext";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function FuelForm({
 	fuel,
 	cars,
-	onSubmit,
+	settings,
 	onClose,
 	serverErrors = {},
 }) {
 	const [formData, setFormData] = useState({
-		carId: fuel?.carId || "",
+		carId: fuel?.carId || settings.defaultCarId || "",
 		fuelType: fuel?.fuelType || "",
 		pricePerLiter: fuel?.pricePerLiter || "",
 		fuelVolume: fuel?.fuelVolume || "",
@@ -22,10 +25,11 @@ export default function FuelForm({
 		comment: fuel?.comment || "",
 	});
 	const [errors, setErrors] = useState({});
+	const { addFuel, updateFuel } = useData();
 
 	useEffect(() => {
 		setFormData({
-			carId: fuel?.carId || "",
+			carId: fuel?.carId || settings.defaultCarId || "",
 			fuelType: fuel?.fuelType || "",
 			pricePerLiter: fuel?.pricePerLiter || "",
 			fuelVolume: fuel?.fuelVolume || "",
@@ -37,7 +41,7 @@ export default function FuelForm({
 			comment: fuel?.comment || "",
 		});
 		setErrors({});
-	}, [fuel]);
+	}, [fuel, settings.defaultCarId]);
 
 	useEffect(() => {
 		const handleEscape = (e) => {
@@ -53,8 +57,9 @@ export default function FuelForm({
 			...formData,
 			[name]: type === "checkbox" ? checked : value,
 		});
-		if (errors[name] || serverErrors[name])
+		if (errors[name] || serverErrors[name]) {
 			setErrors({ ...errors, [name]: null });
+		}
 	};
 
 	const validateForm = () => {
@@ -64,23 +69,26 @@ export default function FuelForm({
 			pricePerLiter: (val) =>
 				!val
 					? "Required"
-					: parseFloat(val) < 0
+					: parseFloat(val) <= 0
 					? "Must be positive"
 					: null,
 			fuelVolume: (val) =>
 				!val
 					? "Required"
-					: parseFloat(val) < 0
+					: parseFloat(val) <= 0
 					? "Must be positive"
 					: null,
 			mileage: (val) =>
 				!val
 					? "Required"
-					: parseFloat(val) < 0
+					: parseFloat(val) <= 0
 					? "Must be positive"
 					: null,
 			fuelDate: (val) => (!val ? "Date is required" : null),
-			comment: (val) => (val && val.length > 1000 ? "Too long" : null),
+			comment: (val) =>
+				val && val.length > 1000
+					? "Comment must be 1000 characters or less"
+					: null,
 		};
 		const newErrors = {};
 		Object.entries(schema).forEach(([key, validate]) => {
@@ -90,11 +98,48 @@ export default function FuelForm({
 		return newErrors;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const newErrors = validateForm();
-		if (Object.keys(newErrors).length) return setErrors(newErrors);
-		onSubmit(formData);
+		if (Object.keys(newErrors).length) {
+			setErrors(newErrors);
+			return;
+		}
+		const fuelTotalCost =
+			parseFloat(formData.pricePerLiter) *
+			parseFloat(formData.fuelVolume);
+		const fuelData = {
+			...formData,
+			pricePerLiter: parseFloat(formData.pricePerLiter) || 0,
+			fuelVolume: parseFloat(formData.fuelVolume) || 0,
+			mileage:
+				settings.distanceUnit === "miles"
+					? parseFloat(formData.mileage) / 0.621371
+					: parseFloat(formData.mileage) || 0,
+			fuelTotalCost: isNaN(fuelTotalCost) ? 0 : fuelTotalCost,
+		};
+		try {
+			if (fuel) {
+				await updateFuel(fuel._id, fuelData);
+			} else {
+				await addFuel(fuelData);
+			}
+			onClose();
+		} catch (error) {
+			try {
+				const parsedError = JSON.parse(error.message);
+				setErrors(parsedError);
+			} catch {
+				// Errors are handled via toast in DataContext
+			}
+		}
+	};
+
+	const computedTotalCost = () => {
+		const total =
+			parseFloat(formData.pricePerLiter) *
+			parseFloat(formData.fuelVolume);
+		return formatCurrency(isNaN(total) ? 0 : total, settings.currency);
 	};
 
 	return (
@@ -147,13 +192,21 @@ export default function FuelForm({
 								<option value="">Select a car</option>
 								{cars.map((car) => (
 									<option key={car._id} value={car._id}>
-										{car.make} {car.model}
+										{car.make} {car.model}{" "}
+										{settings.defaultCarId === car._id
+											? "(Default)"
+											: ""}
 									</option>
 								))}
 							</select>
 							{(errors.carId || serverErrors.carId) && (
 								<p className="text-red-500 text-xs mt-1">
 									{errors.carId || serverErrors.carId}
+								</p>
+							)}
+							{cars.length === 0 && (
+								<p className="text-sm text-red-600 mt-1">
+									Add a car to log fuel.
 								</p>
 							)}
 						</div>
@@ -185,7 +238,7 @@ export default function FuelForm({
 						<div className="sm:grid sm:grid-cols-2 sm:gap-4">
 							{[
 								{
-									label: "Price per Liter",
+									label: `Price per Liter (${settings.currency})`,
 									name: "pricePerLiter",
 									step: "0.01",
 									type: "number",
@@ -222,13 +275,13 @@ export default function FuelForm({
 						<div className="sm:grid sm:grid-cols-2 sm:gap-4">
 							{[
 								{
-									label: "Mileage (km)",
+									label: `Mileage (${settings.distanceUnit})`,
 									name: "mileage",
 									step: "1",
 									type: "number",
 								},
 								{
-									label: "Fuel Date",
+									label: `Fuel Date (${settings.dateFormat})`,
 									name: "fuelDate",
 									type: "date",
 								},
@@ -253,6 +306,15 @@ export default function FuelForm({
 									)}
 								</div>
 							))}
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+								Total Cost
+							</label>
+							<p className="text-sm text-slate-600 dark:text-slate-300">
+								{computedTotalCost()}
+							</p>
 						</div>
 
 						<label className="inline-flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer">

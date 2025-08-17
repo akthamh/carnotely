@@ -9,13 +9,23 @@ import {
 	FaComment,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import dayjs from "dayjs";
+import { formatCurrency } from "../../utils/formatCurrency";
+import { formatDistance } from "../../utils/formatDistance";
 
-export default function FuelCard({ fuel, cars, onEdit, onDelete }) {
+export default function FuelCard({ fuel, cars, settings, onEdit, onDelete }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const car = cars.find((c) => c._id === fuel.carId);
 	const carName = car ? `${car.make} ${car.model}` : "Unknown Car";
-	const formattedDate = new Date(fuel.fuelDate).toLocaleDateString();
-	const totalCost = fuel.fuelTotalCost?.toFixed(2) || "N/A";
+	const formattedDate = dayjs(fuel.fuelDate).format(settings.dateFormat);
+	const totalCost = formatCurrency(fuel.fuelTotalCost, settings.currency);
+	const mileage = formatDistance(
+		settings.distanceUnit === "miles"
+			? fuel.mileage * 0.621371
+			: fuel.mileage,
+		settings.distanceUnit
+	);
+	const pricePerLiter = formatCurrency(fuel.pricePerLiter, settings.currency);
 
 	return (
 		<motion.div
@@ -30,9 +40,16 @@ export default function FuelCard({ fuel, cars, onEdit, onDelete }) {
 
 			<div className="flex-1">
 				<div className="flex justify-between items-center">
-					<h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-						{carName}
-					</h3>
+					<div className="flex items-center gap-2">
+						<h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+							{carName}
+						</h3>
+						{settings.defaultCarId === fuel.carId && (
+							<span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 px-2 py-1 rounded-full">
+								Default
+							</span>
+						)}
+					</div>
 					<span className="text-sm text-slate-500 dark:text-slate-400">
 						<FaCalendarAlt className="inline mr-1" />
 						{formattedDate}
@@ -40,8 +57,7 @@ export default function FuelCard({ fuel, cars, onEdit, onDelete }) {
 				</div>
 
 				<div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-					${totalCost} | {fuel.fuelVolume}L @ $
-					{fuel.pricePerLiter.toFixed(2)}/L
+					{totalCost} | {fuel.fuelVolume}L @ {pricePerLiter}/L
 				</div>
 
 				<AnimatePresence>
@@ -57,7 +73,7 @@ export default function FuelCard({ fuel, cars, onEdit, onDelete }) {
 								<FaRoad className="text-slate-400 dark:text-slate-500" />
 								Mileage:{" "}
 								<strong className="text-indigo-700 dark:text-indigo-400">
-									{fuel.mileage} km
+									{mileage}
 								</strong>
 							</div>
 							<div className="flex items-center gap-2">

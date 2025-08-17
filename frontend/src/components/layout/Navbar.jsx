@@ -1,29 +1,25 @@
-// frontend/src/components/layout/Navbar.jsx
 import { SignedOut, SignedIn, UserButton, useUser } from "@clerk/clerk-react";
 import { FaBars, FaMoon, FaSun } from "react-icons/fa";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { links } from "./Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSettings } from "../../context/SettingsContext";
-import { toast } from "react-hot-toast";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function Navbar() {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const { user } = useUser();
+	const { nightMode, toggleNightMode } = useSettings();
 
 	return (
 		<nav className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm relative">
-			{/* Left side: Logo */}
 			<div className="flex items-center gap-3">
 				<h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 animate-fade-in">
 					Car Notely 🚗
 				</h1>
 			</div>
 
-			{/* Right side: user info, night mode toggle & hamburger */}
 			<div className="flex items-center gap-3">
-				{/* Desktop Clerk Info & Night Mode */}
 				<SignedIn>
 					<div className="hidden md:flex items-center gap-3">
 						<span className="text-slate-600 dark:text-slate-300 text-sm">
@@ -31,7 +27,17 @@ export default function Navbar() {
 								user?.fullName ||
 								user?.emailAddresses[0]?.emailAddress}
 						</span>
-
+						<button
+							onClick={toggleNightMode}
+							className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+							aria-label="Toggle night mode"
+						>
+							{nightMode ? (
+								<FaSun className="text-yellow-500 w-5 h-5" />
+							) : (
+								<FaMoon className="text-slate-600 dark:text-slate-300 w-5 h-5" />
+							)}
+						</button>
 						<UserButton
 							appearance={{
 								elements: {
@@ -45,7 +51,6 @@ export default function Navbar() {
 					</div>
 				</SignedIn>
 
-				{/* Mobile menu toggle */}
 				<button
 					className="md:hidden text-slate-600 dark:text-slate-300 focus:outline-none"
 					onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -55,7 +60,6 @@ export default function Navbar() {
 				</button>
 			</div>
 
-			{/* Mobile Menu */}
 			<AnimatePresence>
 				{isMobileMenuOpen && (
 					<motion.div
@@ -83,7 +87,6 @@ export default function Navbar() {
 									{label}
 								</NavLink>
 							))}
-							{/* Mobile Clerk Info & Night Mode */}
 							<SignedIn>
 								<div className="mt-4 flex items-center justify-between border-t dark:border-slate-600 pt-3">
 									<span className="text-slate-600 dark:text-slate-300 text-sm">
@@ -93,6 +96,17 @@ export default function Navbar() {
 												?.emailAddress}
 									</span>
 									<div className="flex items-center gap-3">
+										<button
+											onClick={toggleNightMode}
+											className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-blue-900 transition-colors"
+											aria-label="Toggle night mode"
+										>
+											{nightMode ? (
+												<FaSun className="text-yellow-500 w-5 h-5" />
+											) : (
+												<FaMoon className="text-slate-600 dark:text-slate-300 w-5 h-5" />
+											)}
+										</button>
 										<UserButton
 											appearance={{
 												elements: {

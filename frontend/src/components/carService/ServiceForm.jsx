@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "../../contexts/SettingsContext";
+import { useData } from "../../contexts/DataContext";
 
 const SERVICE_TYPES = [
 	"Periodic Maintenance",
@@ -28,10 +30,11 @@ const SERVICE_TYPES = [
 export default function ServiceForm({
 	service,
 	cars,
-	onSubmit,
 	onClose,
 	serverErrors = {},
 }) {
+	const { settings } = useSettings();
+	const { addService, updateService } = useData();
 	const [formData, setFormData] = useState({
 		carId: service?.carId || "",
 		serviceName: service?.serviceName || "",
@@ -118,14 +121,36 @@ export default function ServiceForm({
 		return newErrors;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const newErrors = validateForm();
 		if (Object.keys(newErrors).length > 0) {
 			setErrors(newErrors);
 			return;
 		}
-		onSubmit(formData);
+		const serviceData = {
+			...formData,
+			partsCost: parseFloat(formData.partsCost) || 0,
+			laborCost: parseFloat(formData.laborCost) || 0,
+			mileage: parseFloat(formData.mileage) || 0,
+			totalCost:
+				parseFloat(
+					(
+						parseFloat(formData.partsCost || 0) +
+						parseFloat(formData.laborCost || 0)
+					).toFixed(2)
+				) || 0,
+		};
+		try {
+			if (service) {
+				await updateService(service._id, serviceData);
+			} else {
+				await addService(serviceData);
+			}
+			onClose();
+		} catch (error) {
+			// Error handling is done in DataContext
+		}
 	};
 
 	return (
@@ -219,13 +244,13 @@ export default function ServiceForm({
 						<div className="sm:grid sm:grid-cols-2 sm:gap-4">
 							{[
 								{
-									label: "Parts Cost ($)",
+									label: `Parts Cost (${settings.currency})`,
 									name: "partsCost",
 									type: "number",
 									step: "0.01",
 								},
 								{
-									label: "Labor Cost ($)",
+									label: `Labor Cost (${settings.currency})`,
 									name: "laborCost",
 									type: "number",
 									step: "0.01",
@@ -256,7 +281,7 @@ export default function ServiceForm({
 						<div className="sm:grid sm:grid-cols-2 sm:gap-4">
 							{[
 								{
-									label: "Mileage (km)",
+									label: `Mileage (${settings.distanceUnit})`,
 									name: "mileage",
 									type: "number",
 									step: "1",
@@ -319,8 +344,7 @@ export default function ServiceForm({
 								value={formData.comment}
 								onChange={handleChange}
 								rows="3"
-								className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 smევ
-                                sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
+								className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 sm:p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
 								aria-label="Comment"
 							/>
 							{(errors.comment || serverErrors.comment) && (

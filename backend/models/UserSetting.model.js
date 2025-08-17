@@ -32,10 +32,6 @@ const userSettingsSchema = new mongoose.Schema(
 			enum: ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"],
 			default: "DD/MM/YYYY",
 		},
-		nightMode: {
-			type: Boolean,
-			default: false,
-		},
 	},
 	{
 		timestamps: true,

@@ -38,40 +38,56 @@ import {
 } from "react-icons/ri";
 
 import { motion, AnimatePresence } from "framer-motion";
+import dayjs from "dayjs";
+import { useSettings } from "../../contexts/SettingsContext";
+import { formatCurrency } from "../../utils/formatCurrency";
+import { formatDistance } from "../../utils/formatDistance";
 
 export const SERVICE_TYPES_WITH_ICONS = [
-	{ type: "Periodic Maintenance", icon: FaTools }, // Wrench and screwdriver for general maintenance
-	{ type: "Engine Air Filter", icon: MdAir }, // Airflow icon for air filter
-	{ type: "Oil Filter", icon: RiOilFill }, // Oil drop for oil filter
-	{ type: "Brake Fluid", icon: FaOilCan }, // Oil can for fluid
-	{ type: "Oil Change", icon: FaOilCan }, // Oil can for oil change
-	{ type: "Tire Change", icon: MdOutlineTireRepair }, // Tire with tool for tire change
-	{ type: "Battery Replacement", icon: BiSolidCarBattery }, // Car battery icon
-	{ type: "Brake Repair", icon: MdOutlineBuild }, // Build/repair icon for brakes
-	{ type: "Brake Pad Replacement", icon: MdOutlineBuild }, // Same as brake repair
-	{ type: "Brake Discs and Pads", icon: MdOutlineBuild }, // Same as brake repair
-	{ type: "Spark Plugs", icon: FaPlug }, // Plug icon for spark plugs
-	{ type: "Clutch Repair", icon: RiToolsLine }, // Tools for clutch repair
-	{ type: "Wheels", icon: MdOutlineTireRepair }, // Tire with tool for wheels
-	{ type: "Steering Repair", icon: RiSteering2Line }, // Steering wheel icon
-	{ type: "Wash", icon: BiSolidCarWash }, // Car wash icon with bubbles
-	{ type: "Suspension Repair", icon: RiDashboard2Line }, // Suspension/spring icon
-	{ type: "Tire Repair", icon: MdOutlineTireRepair }, // Tire with tool for tire repair
-	{ type: "Transmission Repair", icon: RiToolsLine }, // Tools for transmission repair
-	{ type: "Diagnostic Service", icon: MdOutlineBuild }, // Build/repair for diagnostics
-	{ type: "Other", icon: FaWrench }, // Default wrench for unspecified services
+	{ type: "Periodic Maintenance", icon: FaTools },
+	{ type: "Engine Air Filter", icon: MdAir },
+	{ type: "Oil Filter", icon: RiOilFill },
+	{ type: "Brake Fluid", icon: FaOilCan },
+	{ type: "Oil Change", icon: FaOilCan },
+	{ type: "Tire Change", icon: MdOutlineTireRepair },
+	{ type: "Battery Replacement", icon: BiSolidCarBattery },
+	{ type: "Brake Repair", icon: MdOutlineBuild },
+	{ type: "Brake Pad Replacement", icon: MdOutlineBuild },
+	{ type: "Brake Discs and Pads", icon: MdOutlineBuild },
+	{ type: "Spark Plugs", icon: FaPlug },
+	{ type: "Clutch Repair", icon: RiToolsLine },
+	{ type: "Wheels", icon: MdOutlineTireRepair },
+	{ type: "Steering Repair", icon: RiSteering2Line },
+	{ type: "Wash", icon: BiSolidCarWash },
+	{ type: "Suspension Repair", icon: RiDashboard2Line },
+	{ type: "Tire Repair", icon: MdOutlineTireRepair },
+	{ type: "Transmission Repair", icon: RiToolsLine },
+	{ type: "Diagnostic Service", icon: MdOutlineBuild },
+	{ type: "Other", icon: FaWrench },
 ];
+
 export default function ServiceCard({ service, cars, onEdit, onDelete }) {
+	const { settings } = useSettings();
 	const [isOpen, setIsOpen] = useState(false);
 	const car = cars.find((c) => c._id === service.carId);
 	const carName = car ? `${car.make} ${car.model}` : "Unknown Car";
-	const formattedDate = new Date(service.serviceDate).toLocaleDateString();
-	const totalCost = service.totalCost
-		? service.totalCost.toFixed(2)
-		: (
-				parseFloat(service.partsCost || 0) +
-				parseFloat(service.laborCost || 0)
-		  ).toFixed(2);
+	const formattedDate = dayjs(service.serviceDate).format(
+		settings.dateFormat
+	);
+	const totalCost = formatCurrency(
+		service.totalCost ||
+			parseFloat(service.partsCost || 0) +
+				parseFloat(service.laborCost || 0),
+		settings.currency
+	);
+	const partsCost = formatCurrency(service.partsCost || 0, settings.currency);
+	const laborCost = formatCurrency(service.laborCost || 0, settings.currency);
+	const mileage = formatDistance(
+		settings.distanceUnit === "miles"
+			? service.mileage * 0.621371
+			: service.mileage,
+		settings.distanceUnit
+	);
 	const ServiceIcon =
 		SERVICE_TYPES_WITH_ICONS.find((s) => s.type === service.serviceName)
 			?.icon || FaWrench;
@@ -83,7 +99,7 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 			whileHover={{ scale: 1.01 }}
 			transition={{ duration: 0.2 }}
 		>
-			<div className="flex-shrink-0 text-blue-500 text-3xl mt-2">
+			<div className="flex-shrink-0 text-blue-500 dark:text-blue-400 text-3xl mt-2">
 				<ServiceIcon />
 			</div>
 
@@ -91,7 +107,7 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 				<div className="flex justify-between items-center">
 					<h3 className="text-sm md:text-lg font-semibold text-slate-800 dark:text-slate-100">
 						<span className="text-sm hidden sm:inline">
-							{carName} -
+							{carName} -{" "}
 						</span>{" "}
 						{service.serviceName}
 					</h3>
@@ -102,9 +118,9 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 				</div>
 
 				<div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-					${totalCost} |{" "}
+					{totalCost} |{" "}
 					<span className="text-indigo-700 dark:text-indigo-400">
-						{service.mileage} km
+						{mileage}
 					</span>
 				</div>
 
@@ -119,25 +135,19 @@ export default function ServiceCard({ service, cars, onEdit, onDelete }) {
 						>
 							<div className="flex items-center gap-2">
 								<FaCogs className="text-slate-400 dark:text-slate-500" />
-								Parts Cost:{" "}
-								<strong>
-									${parseFloat(service.partsCost).toFixed(2)}
-								</strong>
+								Parts Cost: <strong>{partsCost}</strong>
 							</div>
 							<div className="flex items-center gap-2">
 								<FaUserCog className="text-slate-400 dark:text-slate-500" />
-								Labor Cost:{" "}
-								<strong>
-									${parseFloat(service.laborCost).toFixed(2)}
-								</strong>
+								Labor Cost: <strong>{laborCost}</strong>
 							</div>
 							<div className="flex items-center gap-2">
 								<FaDollarSign className="text-slate-400 dark:text-slate-500" />
-								Total Cost: <strong>${totalCost}</strong>
+								Total Cost: <strong>{totalCost}</strong>
 							</div>
 							<div className="flex items-center gap-2">
 								<FaRoad className="text-slate-400 dark:text-slate-500" />
-								Mileage: <strong>{service.mileage} km</strong>
+								Mileage: <strong>{mileage}</strong>
 							</div>
 							<div className="flex items-center gap-2">
 								<FaBuilding className="text-slate-400 dark:text-slate-500" />

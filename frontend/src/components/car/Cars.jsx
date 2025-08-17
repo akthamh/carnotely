@@ -1,44 +1,20 @@
-import { useState, useEffect, useMemo } from "react";
-import { useUser, useAuth } from "@clerk/clerk-react";
-import { setupAxios } from "../../config/axios";
+import { useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { FaPlus, FaWrench } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import CarCard from "./CarCard";
 import CarForm from "./CarForm";
-import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
+import { useSettings } from "../../contexts/SettingsContext";
+import { useData } from "../../contexts/DataContext";
 
 export default function Cars() {
-	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingCar, setEditingCar] = useState(null);
-	const [loadingCars, setLoadingCars] = useState(false);
 	const [formErrors, setFormErrors] = useState({});
 	const { isSignedIn } = useUser();
-	const { getToken } = useAuth();
-
-	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
-
-	useEffect(() => {
-		if (isSignedIn) {
-			fetchCars();
-		} else {
-			setCars([]);
-		}
-	}, [isSignedIn, axiosInstance]);
-
-	const fetchCars = async () => {
-		setLoadingCars(true);
-		try {
-			const response = await axiosInstance.get("/cars");
-			setCars(response.data);
-		} catch (error) {
-			toast.error("Failed to fetch cars. Please try again.");
-			console.error("Error fetching cars:", error);
-		} finally {
-			setLoadingCars(false);
-		}
-	};
+	const { cars, loadingCars, deleteCar } = useData();
+	const { settings } = useSettings();
 
 	const handleAddCar = () => {
 		setEditingCar(null);
@@ -55,7 +31,10 @@ export default function Cars() {
 	const handleDelete = async (carId) => {
 		const result = await MySwal.fire({
 			title: "Are you sure?",
-			text: "This car will be permanently deleted!",
+			text:
+				settings.defaultCarId === carId
+					? "This is your default car. Deleting it will reset the default car setting. Continue?"
+					: "This car will be permanently deleted!",
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#d33",
@@ -64,53 +43,7 @@ export default function Cars() {
 		});
 
 		if (result.isConfirmed) {
-			try {
-				await axiosInstance.delete(`/cars/${carId}`);
-				setCars((prev) => prev.filter((car) => car._id !== carId));
-				MySwal.fire("Deleted!", "The car has been removed.", "success");
-			} catch (error) {
-				MySwal.fire(
-					"Error",
-					"Something went wrong while deleting.",
-					"error"
-				);
-			}
-		}
-	};
-
-	const handleFormSubmit = async (carData) => {
-		try {
-			setFormErrors({});
-			if (editingCar) {
-				const response = await axiosInstance.patch(
-					`/cars/${editingCar._id}`,
-					carData
-				);
-				setCars((prev) =>
-					prev.map((car) =>
-						car._id === editingCar._id ? response.data : car
-					)
-				);
-				toast.success("Car updated successfully");
-			} else {
-				const response = await axiosInstance.post("/cars", carData);
-				setCars((prev) => [...prev, response.data]);
-				toast.success("Car added successfully");
-			}
-			setIsModalOpen(false);
-			setEditingCar(null);
-		} catch (error) {
-			console.error("Error saving car:", error);
-			if (error.response?.status === 400 && error.response.data) {
-				const { field, message } = error.response.data;
-				if (field && message) {
-					setFormErrors({ [field]: message });
-				} else if (error.response.data.message) {
-					setFormErrors({ form: error.response.data.message });
-				}
-			} else {
-				toast.error("Failed to save car. Please try again.");
-			}
+			await deleteCar(carId);
 		}
 	};
 
@@ -134,6 +67,12 @@ export default function Cars() {
 				{loadingCars ? (
 					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
 						Loading cars...
+					</div>
+				) : !isSignedIn ? (
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
+							Please sign in to view cars.
+						</p>
 					</div>
 				) : cars.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
@@ -164,7 +103,6 @@ export default function Cars() {
 				{isModalOpen && (
 					<CarForm
 						car={editingCar}
-						onSubmit={handleFormSubmit}
 						onClose={() => {
 							setIsModalOpen(false);
 							setEditingCar(null);

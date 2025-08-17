@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useData } from "../../contexts/DataContext";
 
-export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
+export default function CarForm({ car, onClose, serverErrors = {} }) {
 	const [formData, setFormData] = useState({
 		make: car?.make || "",
 		model: car?.model || "",
@@ -13,6 +14,7 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 		fuelType: car?.fuelType || "",
 	});
 	const [errors, setErrors] = useState({});
+	const { addCar, updateCar } = useData();
 
 	useEffect(() => {
 		setFormData({
@@ -75,14 +77,28 @@ export default function CarForm({ car, onSubmit, onClose, serverErrors = {} }) {
 		return newErrors;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const newErrors = validateForm();
 		if (Object.keys(newErrors).length > 0) {
 			setErrors(newErrors);
 			return;
 		}
-		onSubmit(formData);
+		try {
+			if (car) {
+				await updateCar(car._id, formData);
+			} else {
+				await addCar(formData);
+			}
+			onClose();
+		} catch (error) {
+			try {
+				const parsedError = JSON.parse(error.message);
+				setErrors(parsedError);
+			} catch {
+				// Errors are handled via toast in DataContext
+			}
+		}
 	};
 
 	return (

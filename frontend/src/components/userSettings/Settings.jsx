@@ -1,4 +1,3 @@
-// frontend/src/components/Settings.jsx
 import { useEffect, useState } from "react";
 import { FaCog, FaTrash } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -7,87 +6,20 @@ import { Toaster, toast } from "react-hot-toast";
 import { setupAxios } from "../../config/axios";
 import DashboardLayout from "../DashboardLayout";
 import Swal from "sweetalert2";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function Settings() {
 	const { getToken, isSignedIn } = useAuth();
+	const { settings, setSettings, updateSettings } = useSettings();
 	const axiosInstance = setupAxios(getToken);
-
-	// State for settings and cars
-	const [settings, setSettings] = useState({
-		currency: "AFN",
-		distanceUnit: "km",
-		timeFormat: "24h",
-		dateFormat: "DD/MM/YYYY",
-		nightMode: false,
-		defaultCarId: null,
-	});
 	const [cars, setCars] = useState([]);
 	const [loading, setLoading] = useState(false);
 
-	// Apply night mode by toggling the 'dark' class
-	useEffect(() => {
-		if (settings.nightMode) {
-			document.documentElement.classList.add("dark");
-		} else {
-			document.documentElement.classList.remove("dark");
-		}
-	}, [settings.nightMode]);
-	// Fetch user settings
-	const fetchSettings = async () => {
-		try {
-			setLoading(true);
-			const res = await axiosInstance.get("/settings");
-			setSettings(res.data);
-		} catch (err) {
-			console.error("Error loading settings:", err);
-			toast.error(
-				err.response?.data?.message || "Failed to load settings"
-			);
-		} finally {
-			setLoading(false);
-		}
-	};
-	useEffect(() => {
-		if (isSignedIn) {
-			const loadData = async () => {
-				await fetchSettings();
-				await fetchCars();
-			};
-			loadData();
-		} else {
-			setSettings({
-				currency: "AFN",
-				distanceUnit: "km",
-				timeFormat: "24h",
-				dateFormat: "DD/MM/YYYY",
-				nightMode: false,
-				defaultCarId: null,
-			});
-			setCars([]);
-		}
-	}, [isSignedIn]);
-
-	// Fetch all cars for defaultCarId dropdown
 	const fetchCars = async () => {
 		try {
 			setLoading(true);
 			const response = await axiosInstance.get("/cars");
-			const fetchedCars = response.data;
-			setCars(fetchedCars);
-
-			// Set defaultCarId to first car if it's not already set
-			if (
-				fetchedCars.length > 0 &&
-				(!settings.defaultCarId ||
-					!fetchedCars.some(
-						(car) => car._id === settings.defaultCarId
-					))
-			) {
-				setSettings((prev) => ({
-					...prev,
-					defaultCarId: fetchedCars[0]._id,
-				}));
-			}
+			setCars(response.data);
 		} catch (error) {
 			console.error("Error fetching cars:", error);
 			toast.error("Failed to load cars");
@@ -96,14 +28,26 @@ export default function Settings() {
 		}
 	};
 
-	// Handle form submission
+	useEffect(() => {
+		if (isSignedIn) {
+			fetchCars();
+		} else {
+			setCars([]);
+		}
+	}, [isSignedIn]);
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		try {
 			setLoading(true);
-			const res = await axiosInstance.post("/settings", settings);
-			setSettings(res.data); // ✅ updates context
-			toast.success("Settings updated successfully");
+			const updatedSettings = {
+				...settings,
+				defaultCarId:
+					settings.defaultCarId ||
+					(cars.length > 0 ? cars[0]._id : null),
+			};
+			await updateSettings(updatedSettings);
+			toast.success("Settings saved successfully");
 		} catch (err) {
 			console.error("Error updating settings:", err);
 			toast.error(
@@ -113,8 +57,6 @@ export default function Settings() {
 			setLoading(false);
 		}
 	};
-
-	// Handle settings reset
 
 	const handleReset = async () => {
 		const result = await Swal.fire({
@@ -135,10 +77,8 @@ export default function Settings() {
 					distanceUnit: "km",
 					timeFormat: "24h",
 					dateFormat: "DD/MM/YYYY",
-					nightMode: false,
-					defaultCarId: null,
+					defaultCarId: cars.length > 0 ? cars[0]._id : null,
 				});
-				document.documentElement.classList.remove("dark"); // ⬅️ reset dark class
 				toast.success("Settings reset successfully");
 			} catch (err) {
 				console.error("Error resetting settings:", err);
@@ -150,24 +90,6 @@ export default function Settings() {
 			}
 		}
 	};
-
-	// Load settings and cars on mount
-	useEffect(() => {
-		if (isSignedIn) {
-			fetchSettings();
-			fetchCars();
-		} else {
-			setSettings({
-				currency: "AFN",
-				distanceUnit: "km",
-				timeFormat: "24h",
-				dateFormat: "DD/MM/YYYY",
-				nightMode: false,
-				defaultCarId: null,
-			});
-			setCars([]);
-		}
-	}, [isSignedIn]);
 
 	return (
 		<DashboardLayout>
@@ -183,7 +105,6 @@ export default function Settings() {
 
 				<Toaster />
 
-				{/* Settings Form */}
 				<motion.div
 					className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm"
 					initial={{ opacity: 0, y: 30 }}
@@ -202,7 +123,6 @@ export default function Settings() {
 					) : (
 						<form onSubmit={handleSubmit} className="space-y-6">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-								{/* Currency */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Currency
@@ -210,10 +130,10 @@ export default function Settings() {
 									<select
 										value={settings.currency || "AFN"}
 										onChange={(e) =>
-											setSettings({
-												...settings,
+											setSettings((prev) => ({
+												...prev,
 												currency: e.target.value,
-											})
+											}))
 										}
 										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
 									>
@@ -236,7 +156,6 @@ export default function Settings() {
 									</select>
 								</div>
 
-								{/* Distance Unit */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Distance Unit
@@ -244,10 +163,10 @@ export default function Settings() {
 									<select
 										value={settings.distanceUnit || "km"}
 										onChange={(e) =>
-											setSettings({
-												...settings,
+											setSettings((prev) => ({
+												...prev,
 												distanceUnit: e.target.value,
-											})
+											}))
 										}
 										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
 									>
@@ -256,7 +175,6 @@ export default function Settings() {
 									</select>
 								</div>
 
-								{/* Time Format */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Time Format
@@ -264,10 +182,10 @@ export default function Settings() {
 									<select
 										value={settings.timeFormat || "24h"}
 										onChange={(e) =>
-											setSettings({
-												...settings,
+											setSettings((prev) => ({
+												...prev,
 												timeFormat: e.target.value,
-											})
+											}))
 										}
 										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
 									>
@@ -276,7 +194,6 @@ export default function Settings() {
 									</select>
 								</div>
 
-								{/* Date Format */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Date Format
@@ -286,10 +203,10 @@ export default function Settings() {
 											settings.dateFormat || "DD/MM/YYYY"
 										}
 										onChange={(e) =>
-											setSettings({
-												...settings,
+											setSettings((prev) => ({
+												...prev,
 												dateFormat: e.target.value,
-											})
+											}))
 										}
 										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
 									>
@@ -305,7 +222,6 @@ export default function Settings() {
 									</select>
 								</div>
 
-								{/* Default Car */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Default Car
@@ -313,13 +229,14 @@ export default function Settings() {
 									<select
 										value={settings.defaultCarId || ""}
 										onChange={(e) =>
-											setSettings({
-												...settings,
+											setSettings((prev) => ({
+												...prev,
 												defaultCarId:
 													e.target.value || null,
-											})
+											}))
 										}
-										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+										disabled={cars.length === 0}
+										className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
 									>
 										<option value="">No Default Car</option>
 										{cars.map((car) => (
@@ -332,28 +249,11 @@ export default function Settings() {
 											</option>
 										))}
 									</select>
-								</div>
-
-								{/* Night Mode */}
-								<div className="flex items-center">
-									<label className="flex items-center space-x-3">
-										<input
-											type="checkbox"
-											checked={
-												settings.nightMode || false
-											}
-											onChange={(e) =>
-												setSettings({
-													...settings,
-													nightMode: e.target.checked,
-												})
-											}
-											className="rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-										/>
-										<span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-											Night Mode
-										</span>
-									</label>
+									{cars.length === 0 && (
+										<p className="text-sm text-red-600 mt-1">
+											Add a car to select a default.
+										</p>
+									)}
 								</div>
 							</div>
 

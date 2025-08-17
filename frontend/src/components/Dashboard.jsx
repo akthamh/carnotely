@@ -1,9 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { FaCar, FaGasPump, FaWrench, FaPlus } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useAuth, useUser } from "@clerk/clerk-react";
-import { setupAxios } from "../config/axios";
 import dayjs from "dayjs";
 import {
 	LineChart,
@@ -18,23 +15,35 @@ import {
 	Label,
 } from "recharts";
 import DashboardLayout from "./DashboardLayout";
+import { useSettings } from "../contexts/SettingsContext";
+import { formatCurrency } from "../utils/formatCurrency";
+import { formatDistance } from "../utils/formatDistance";
+import { useData } from "../contexts/DataContext";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
-	const { getToken } = useAuth();
-	const { isSignedIn } = useUser();
-	const axiosInstance = setupAxios(getToken);
+	const { settings, nightMode } = useSettings();
+	const {
+		cars,
+		fuels,
+		services,
+		getRecentFuels,
+		getRecentServices,
+		monthlyFuelData,
+		monthlyServiceData,
+		loadingCars,
+		loadingFuels,
+	} = useData();
 
-	// State for fuel and service monthly data
-	const [monthlyFuelData, setMonthlyFuelData] = useState([]);
-	const [monthlyServiceData, setMonthlyServiceData] = useState([]);
-	const [mergedMonthlyData, setMergedMonthlyData] = useState([]);
-	const [totalFuelCost, setTotalFuelCost] = useState(0);
-	const [totalServiceCost, setTotalServiceCost] = useState(0);
-	const [recentFuels, setRecentFuels] = useState([]);
-	const [loadingCars, setLoadingCars] = useState(false);
-	const [cars, setCars] = useState([]);
+	const totalFuelCost = monthlyFuelData.reduce(
+		(sum, item) => sum + item.totalCost,
+		0
+	);
+	const totalServiceCost = monthlyServiceData.reduce(
+		(sum, item) => sum + item.totalCost,
+		0
+	);
 
-	// Widgets update to use dynamic values
 	const widgets = [
 		{
 			title: "Total Cars",
@@ -46,7 +55,7 @@ export default function Dashboard() {
 		},
 		{
 			title: "Total Fuel Cost",
-			value: `$${totalFuelCost.toFixed(2)}`,
+			value: formatCurrency(totalFuelCost, settings.currency),
 			icon: <FaGasPump className="text-white text-xl" />,
 			bgColor: "bg-amber-500 dark:bg-amber-600",
 			iconBg: "bg-amber-400 dark:bg-amber-500",
@@ -54,7 +63,7 @@ export default function Dashboard() {
 		},
 		{
 			title: "Total Service Cost",
-			value: `$${totalServiceCost.toFixed(2)}`,
+			value: formatCurrency(totalServiceCost, settings.currency),
 			icon: <FaWrench className="text-white text-xl" />,
 			bgColor: "bg-emerald-500 dark:bg-emerald-600",
 			iconBg: "bg-emerald-400 dark:bg-emerald-500",
@@ -62,7 +71,6 @@ export default function Dashboard() {
 		},
 	];
 
-	// Map cars by id for quick lookup
 	const carMap = useMemo(() => {
 		return cars.reduce((map, car) => {
 			map[car._id] = car;
@@ -70,17 +78,16 @@ export default function Dashboard() {
 		}, {});
 	}, [cars]);
 
-	// Merge fuel and service monthly data by month key
-	function mergeMonthlyData(fuelData, serviceData) {
+	const mergedMonthlyData = useMemo(() => {
 		const mergedMap = new Map();
-		fuelData.forEach(({ month, totalCost }) => {
+		monthlyFuelData.forEach(({ month, totalCost }) => {
 			mergedMap.set(month, {
 				month,
 				fuelCost: totalCost,
 				serviceCost: 0,
 			});
 		});
-		serviceData.forEach(({ month, totalCost }) => {
+		monthlyServiceData.forEach(({ month, totalCost }) => {
 			if (mergedMap.has(month)) {
 				mergedMap.get(month).serviceCost = totalCost;
 			} else {
@@ -108,86 +115,7 @@ export default function Dashboard() {
 		return Array.from(mergedMap.values()).sort(
 			(a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
 		);
-	}
-
-	// Fetch monthly fuel cost data
-	const fetchMonthlyFuelCost = async () => {
-		try {
-			const res = await axiosInstance.get("/fuels/cost-month");
-			const formatted = res.data.monthly.map((item) => ({
-				month: dayjs(item.month, "YYYY-MM").format("MMM"),
-				totalCost: item.totalCost,
-			}));
-			setMonthlyFuelData(formatted);
-			setTotalFuelCost(res.data.grandTotal);
-			return formatted;
-		} catch (err) {
-			console.error("Error loading monthly fuel cost:", err);
-			return [];
-		}
-	};
-
-	// Fetch monthly service cost data
-	const fetchMonthlyServiceCost = async () => {
-		try {
-			const res = await axiosInstance.get("/services/monthly-cost");
-			const formatted = res.data.monthly.map((item) => ({
-				month: dayjs(item._id, "YYYY-MM").format("MMM"),
-				totalCost: item.totalCost,
-			}));
-			setMonthlyServiceData(formatted);
-			setTotalServiceCost(res.data.grandTotal);
-			return formatted;
-		} catch (err) {
-			console.error("Error loading monthly service cost:", err);
-			return [];
-		}
-	};
-
-	// Fetch recent fuel logs
-	const fetchRecentFuelLogs = async () => {
-		try {
-			const res = await axiosInstance.get("/fuels/last-five");
-			setRecentFuels(res.data);
-		} catch (err) {
-			console.error("Error loading recent fuel logs:", err);
-		}
-	};
-
-	// Fetch all cars
-	const fetchCars = async () => {
-		setLoadingCars(true);
-		try {
-			const response = await axiosInstance.get("/cars");
-			setCars(response.data);
-		} catch (error) {
-			console.error("Error fetching cars:", error);
-		} finally {
-			setLoadingCars(false);
-		}
-	};
-
-	useEffect(() => {
-		if (isSignedIn) {
-			(async () => {
-				const [fuel, service] = await Promise.all([
-					fetchMonthlyFuelCost(),
-					fetchMonthlyServiceCost(),
-				]);
-				setMergedMonthlyData(mergeMonthlyData(fuel, service));
-			})();
-			fetchRecentFuelLogs();
-			fetchCars();
-		} else {
-			setMonthlyFuelData([]);
-			setMonthlyServiceData([]);
-			setMergedMonthlyData([]);
-			setRecentFuels([]);
-			setCars([]);
-			setTotalFuelCost(0);
-			setTotalServiceCost(0);
-		}
-	}, [isSignedIn]);
+	}, [monthlyFuelData, monthlyServiceData]);
 
 	return (
 		<DashboardLayout>
@@ -201,13 +129,16 @@ export default function Dashboard() {
 					Dashboard
 				</motion.h1>
 
-				{/* Animated Cards */}
 				<motion.div
 					className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10"
 					initial="hidden"
 					animate="visible"
 					variants={{
-						visible: { transition: { staggerChildren: 0.15 } },
+						hidden: { opacity: 0 },
+						visible: {
+							opacity: 1,
+							transition: { staggerChildren: 0.15 },
+						},
 					}}
 				>
 					{widgets.map((item, idx) => (
@@ -240,49 +171,12 @@ export default function Dashboard() {
 					))}
 				</motion.div>
 
-				{/* Quick Actions */}
-				<motion.div
-					className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm"
-					initial={{ opacity: 0, y: 30 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.2 }}
-				>
-					<h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">
-						Quick Actions
-					</h2>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<Link
-							to="/cars/new"
-							className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
-						>
-							<FaPlus className="inline-block mr-2" />
-							Add New Car
-						</Link>
-						<Link
-							to="/fuel/new"
-							className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
-						>
-							<FaPlus className="inline-block mr-2" />
-							Add Fuel Entry
-						</Link>
-						<Link
-							to="/service/new"
-							className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
-						>
-							<FaPlus className="inline-block mr-2" />
-							Log Service
-						</Link>
-					</div>
-				</motion.div>
-
-				{/* Combined Fuel & Service Charts */}
 				<motion.div
 					className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8"
 					initial={{ opacity: 0, y: 30 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.3 }}
 				>
-					{/* Combined Line Chart */}
 					<div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow col-span-2">
 						<h3 className="text-xl font-semibold mb-4 text-slate-700 dark:text-slate-200">
 							Monthly Fuel & Service Spend (Line Chart)
@@ -292,8 +186,8 @@ export default function Dashboard() {
 								data={mergedMonthlyData}
 								margin={{
 									top: 20,
-									right: 30,
-									left: 20,
+									right: 10,
+									left: 10,
 									bottom: 5,
 								}}
 							>
@@ -305,10 +199,15 @@ export default function Dashboard() {
 								<YAxis stroke="#64748b" />
 								<Tooltip
 									contentStyle={{
-										backgroundColor: "#fff",
-										color: "#1e293b",
+										backgroundColor: nightMode
+											? "#1e293b"
+											: "#fff",
+										color: nightMode ? "#fff" : "#1e293b",
 										borderRadius: "8px",
 									}}
+									formatter={(value) =>
+										formatCurrency(value, settings.currency)
+									}
 								/>
 								<Line
 									type="monotone"
@@ -332,18 +231,21 @@ export default function Dashboard() {
 						</ResponsiveContainer>
 					</div>
 
-					{/* Recent Fuel Logs */}
 					<div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow w-full">
 						<h3 className="text-xl font-semibold mb-4 text-slate-700 dark:text-slate-200">
 							Recent Fuel Logs
 						</h3>
 						<ul className="divide-y divide-gray-200 dark:divide-slate-700 p-0">
-							{recentFuels.length === 0 ? (
+							{loadingFuels || loadingCars ? (
+								<p className="text-slate-500 dark:text-slate-400">
+									Loading logs...
+								</p>
+							) : fuels.length === 0 ? (
 								<p className="text-slate-500 dark:text-slate-400">
 									No recent logs.
 								</p>
 							) : (
-								recentFuels.map((log) => (
+								getRecentFuels.map((log) => (
 									<li key={log._id} className="py-3 w-full">
 										<div className="text-sm font-medium text-slate-800 dark:text-slate-200 flex gap-x-2 items-center w-full">
 											<span>{log.fuelType}</span>
@@ -353,12 +255,27 @@ export default function Dashboard() {
 													"Unknown Car"}
 											</span>
 										</div>
-										<p className="text-sm text-slate-500 dark:text-slate-400 w-full">
-											{dayjs(log.fuelDate).format(
-												"MMM D, YYYY"
-											)}{" "}
-											· ${log.fuelTotalCost.toFixed(2)} ·{" "}
-											{log.carMileage} km
+										<p className="text-sm text-slate-500 dark:text-slate-400 w-full flex flex-wrap gap-x-2">
+											<span className="whitespace-nowrap">
+												{dayjs(log.fuelDate).format(
+													settings.dateFormat
+												)}
+											</span>
+											<span className="whitespace-nowrap">
+												{formatCurrency(
+													log.fuelTotalCost,
+													settings.currency
+												)}
+											</span>
+											<span className="whitespace-nowrap">
+												{formatDistance(
+													settings.distanceUnit ===
+														"miles"
+														? log.mileage * 0.621371
+														: log.mileage,
+													settings.distanceUnit
+												)}
+											</span>
 										</p>
 									</li>
 								))
@@ -367,70 +284,138 @@ export default function Dashboard() {
 					</div>
 				</motion.div>
 
-				{/* Combined Bar Chart */}
 				<motion.div
-					className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow"
+					className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8"
 					initial={{ opacity: 0, y: 30 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.4 }}
 				>
-					<h3 className="text-xl font-semibold mb-4 text-slate-700 dark:text-slate-200">
-						Monthly Fuel & Service Spend (Bar Chart)
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart
-							data={mergedMonthlyData}
-							margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-						>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								stroke="#d1d5db"
-							/>
-							<XAxis dataKey="month" stroke="#64748b" />
-							<YAxis stroke="#64748b" />
-							<Tooltip
-								contentStyle={{
-									backgroundColor: "#fff",
-									color: "#1e293b",
-									borderRadius: "8px",
+					<div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow w-full">
+						<h3 className="text-xl font-semibold mb-4 text-slate-700 dark:text-slate-200">
+							Recent service Logs
+						</h3>
+						<ul className="divide-y divide-gray-200 dark:divide-slate-700 p-0">
+							{loadingFuels || loadingCars ? (
+								<p className="text-slate-500 dark:text-slate-400">
+									Loading logs...
+								</p>
+							) : fuels.length === 0 ? (
+								<p className="text-slate-500 dark:text-slate-400">
+									No recent logs.
+								</p>
+							) : (
+								getRecentServices.map((log) => (
+									<li key={log._id} className="py-3 w-full">
+										<div className="text-sm font-medium text-slate-800 dark:text-slate-200 flex gap-x-2 items-center w-full">
+											<span>{log.serviceName}</span>
+											<span>-</span>
+											<span>
+												{carMap[log.carId]?.model ||
+													"Unknown Car"}
+											</span>
+										</div>
+										<p className="text-sm text-slate-500 dark:text-slate-400 w-full flex flex-wrap gap-x-2">
+											<span className="whitespace-nowrap">
+												{dayjs(log.fuelDate).format(
+													settings.dateFormat
+												)}
+											</span>
+											<span className="whitespace-nowrap">
+												{formatCurrency(
+													log.totalCost,
+													settings.currency
+												)}
+											</span>
+											<span className="whitespace-nowrap">
+												{formatDistance(
+													settings.distanceUnit ===
+														"miles"
+														? log.mileage * 0.621371
+														: log.mileage,
+													settings.distanceUnit
+												)}
+											</span>
+										</p>
+									</li>
+								))
+							)}
+						</ul>
+					</div>
+					<div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow col-span-2">
+						<h3 className="text-xl font-semibold mb-4 text-slate-700 dark:text-slate-200">
+							Monthly Fuel & Service Spend (Bar Chart)
+						</h3>
+						<ResponsiveContainer width="100%" height={300}>
+							<BarChart
+								data={mergedMonthlyData}
+								margin={{
+									top: 20,
+									right: 10,
+									left: 10,
+									bottom: 5,
 								}}
-							/>
-							<Bar
-								dataKey="fuelCost"
-								fill="#f59e0b"
-								radius={[4, 4, 0, 0]}
-								name="Fuel Cost"
 							>
-								<Label
+								<CartesianGrid
+									strokeDasharray="3 3"
+									stroke="#d1d5db"
+								/>
+								<XAxis dataKey="month" stroke="#64748b" />
+								<YAxis stroke="#64748b" />
+								<Tooltip
+									contentStyle={{
+										backgroundColor: nightMode
+											? "#1e293b"
+											: "#fff",
+										color: nightMode ? "#fff" : "#1e293b",
+										borderRadius: "8px",
+									}}
+									formatter={(value) =>
+										formatCurrency(value, settings.currency)
+									}
+								/>
+								<Bar
 									dataKey="fuelCost"
-									position="bottom"
-									fill="#64748b"
-									formatter={(value) =>
-										`$${value.toFixed(2)}`
-									}
-									offset={-5}
-									fontSize={12}
-								/>
-							</Bar>
-							<Bar
-								dataKey="serviceCost"
-								fill="#10b981"
-								radius={[4, 4, 0, 0]}
-								name="Service Cost"
-							>
-								<Label
+									fill="#f59e0b"
+									radius={[4, 4, 0, 0]}
+									name="Fuel Cost"
+								>
+									<Label
+										dataKey="fuelCost"
+										position="bottom"
+										fill="#64748b"
+										formatter={(value) =>
+											formatCurrency(
+												value,
+												settings.currency
+											)
+										}
+										offset={-5}
+										fontSize={12}
+									/>
+								</Bar>
+								<Bar
 									dataKey="serviceCost"
-									position="bottom"
-									fill="#64748b"
-									formatter={(value) =>
-										`$${value.toFixed(2)}`
-									}
-									offset={-5}
-									fontSize={12}
-								/>
-							</Bar>
-						</BarChart>
-					</ResponsiveContainer>
+									fill="#10b981"
+									radius={[4, 4, 0, 0]}
+									name="Service Cost"
+								>
+									<Label
+										dataKey="serviceCost"
+										position="bottom"
+										fill="#64748b"
+										formatter={(value) =>
+											formatCurrency(
+												value,
+												settings.currency
+											)
+										}
+										offset={-5}
+										fontSize={12}
+									/>
+								</Bar>
+							</BarChart>
+						</ResponsiveContainer>
+					</div>
 				</motion.div>
 			</div>
 		</DashboardLayout>
