@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useData } from "../../contexts/DataContext";
 
 const SERVICE_TYPES = [
 	"Periodic Maintenance",
@@ -29,11 +30,11 @@ const SERVICE_TYPES = [
 export default function ServiceForm({
 	service,
 	cars,
-	onSubmit,
 	onClose,
 	serverErrors = {},
 }) {
 	const { settings } = useSettings();
+	const { addService, updateService } = useData();
 	const [formData, setFormData] = useState({
 		carId: service?.carId || "",
 		serviceName: service?.serviceName || "",
@@ -120,24 +121,36 @@ export default function ServiceForm({
 		return newErrors;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const newErrors = validateForm();
 		if (Object.keys(newErrors).length > 0) {
 			setErrors(newErrors);
 			return;
 		}
-		const totalCost = (
-			parseFloat(formData.partsCost || 0) +
-			parseFloat(formData.laborCost || 0)
-		).toFixed(2);
-		onSubmit({
+		const serviceData = {
 			...formData,
 			partsCost: parseFloat(formData.partsCost) || 0,
 			laborCost: parseFloat(formData.laborCost) || 0,
 			mileage: parseFloat(formData.mileage) || 0,
-			totalCost: parseFloat(totalCost) || 0,
-		});
+			totalCost:
+				parseFloat(
+					(
+						parseFloat(formData.partsCost || 0) +
+						parseFloat(formData.laborCost || 0)
+					).toFixed(2)
+				) || 0,
+		};
+		try {
+			if (service) {
+				await updateService(service._id, serviceData);
+			} else {
+				await addService(serviceData);
+			}
+			onClose();
+		} catch (error) {
+			// Error handling is done in DataContext
+		}
 	};
 
 	return (

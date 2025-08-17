@@ -15,6 +15,10 @@ import Fuels from "./components/feul/Fuel";
 import Service from "./components/carService/Services";
 import Settings from "./components/userSettings/Settings";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import SignInPage from "./components/auth/SignInPage";
+import SignUpPage from "./components/auth/SignUpPage";
+
+import { DataProvider } from "./contexts/DataContext";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -32,37 +36,47 @@ function App() {
 			}}
 		>
 			<SettingsProvider>
-				<Router>
-					<Toaster />
-					<SignedOut>
-						<Routes>
-							<Route
-								path="/sign-up/*"
-								element={
-									<SignUp routing="path" path="/sign-up" />
-								}
-							/>
-							<Route path="*" element={<RedirectToSignIn />} />
-							<Route path="/" element={<Landing />} />
-						</Routes>
-					</SignedOut>
-					<SignedIn>
-						<Routes>
-							<Route path="/dashboard" element={<Dashboard />} />
-							<Route path="/cars" element={<Cars />} />
-							<Route path="/fuel" element={<Fuels />} />
-							<Route path="/service" element={<Service />} />
-							<Route path="/settings" element={<Settings />} />
-							<Route
-								path="/sign-up/*"
-								element={
-									<SignUp routing="path" path="/sign-up" />
-								}
-							/>
-							<Route path="*" element={<Dashboard />} />
-						</Routes>
-					</SignedIn>
-				</Router>
+				<DataProvider>
+					<Router>
+						<Toaster />
+						<SignedOut>
+							<Routes>
+								<Route path="/" element={<SignInPage />} />
+								<Route
+									path="/sign-up"
+									element={<SignUpPage />}
+								/>
+								<Route path="*" element={<SignInPage />} />
+							</Routes>
+						</SignedOut>
+
+						<SignedIn>
+							<Routes>
+								<Route
+									path="/dashboard"
+									element={<Dashboard />}
+								/>
+								<Route path="/cars" element={<Cars />} />
+								<Route path="/fuel" element={<Fuels />} />
+								<Route path="/service" element={<Service />} />
+								<Route
+									path="/settings"
+									element={<Settings />}
+								/>
+								<Route
+									path="/sign-up/*"
+									element={
+										<SignUp
+											routing="path"
+											path="/sign-up"
+										/>
+									}
+								/>
+								<Route path="*" element={<Dashboard />} />
+							</Routes>
+						</SignedIn>
+					</Router>
+				</DataProvider>
 			</SettingsProvider>
 		</ClerkProvider>
 	);

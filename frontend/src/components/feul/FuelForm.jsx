@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "../../utils/formatCurrency";
+import { useData } from "../../contexts/DataContext";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export default function FuelForm({
 	fuel,
 	cars,
 	settings,
-	onSubmit,
 	onClose,
 	serverErrors = {},
 }) {
@@ -24,6 +25,7 @@ export default function FuelForm({
 		comment: fuel?.comment || "",
 	});
 	const [errors, setErrors] = useState({});
+	const { addFuel, updateFuel } = useData();
 
 	useEffect(() => {
 		setFormData({
@@ -96,7 +98,7 @@ export default function FuelForm({
 		return newErrors;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const newErrors = validateForm();
 		if (Object.keys(newErrors).length) {
@@ -106,13 +108,31 @@ export default function FuelForm({
 		const fuelTotalCost =
 			parseFloat(formData.pricePerLiter) *
 			parseFloat(formData.fuelVolume);
-		onSubmit({
+		const fuelData = {
 			...formData,
 			pricePerLiter: parseFloat(formData.pricePerLiter) || 0,
 			fuelVolume: parseFloat(formData.fuelVolume) || 0,
-			mileage: parseFloat(formData.mileage) || 0,
+			mileage:
+				settings.distanceUnit === "miles"
+					? parseFloat(formData.mileage) / 0.621371
+					: parseFloat(formData.mileage) || 0,
 			fuelTotalCost: isNaN(fuelTotalCost) ? 0 : fuelTotalCost,
-		});
+		};
+		try {
+			if (fuel) {
+				await updateFuel(fuel._id, fuelData);
+			} else {
+				await addFuel(fuelData);
+			}
+			onClose();
+		} catch (error) {
+			try {
+				const parsedError = JSON.parse(error.message);
+				setErrors(parsedError);
+			} catch {
+				// Errors are handled via toast in DataContext
+			}
+		}
 	};
 
 	const computedTotalCost = () => {

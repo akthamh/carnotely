@@ -1,53 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
-import { useUser, useAuth } from "@clerk/clerk-react";
-import { setupAxios } from "../../config/axios";
+import { useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { FaPlus, FaWrench } from "react-icons/fa";
 import DashboardLayout from "../DashboardLayout";
 import ServiceCard from "./ServiceCard";
 import ServiceForm from "./ServiceForm";
-import { toast } from "react-hot-toast";
 import MySwal from "sweetalert2";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useData } from "../../contexts/DataContext";
 
 export default function Services() {
-	const [services, setServices] = useState([]);
-	const [cars, setCars] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingService, setEditingService] = useState(null);
-	const [loadingServices, setLoadingServices] = useState(false);
-	const [loadingCars, setLoadingCars] = useState(false);
 	const { isSignedIn } = useUser();
-	const { getToken } = useAuth();
+	const { services, cars, loadingServices, loadingCars } = useData();
 	const { settings } = useSettings();
-
-	const axiosInstance = useMemo(() => setupAxios(getToken), [getToken]);
-
-	useEffect(() => {
-		if (isSignedIn) {
-			const fetchData = async () => {
-				setLoadingServices(true);
-				setLoadingCars(true);
-				try {
-					const [servicesResponse, carsResponse] = await Promise.all([
-						axiosInstance.get("/services"),
-						axiosInstance.get("/cars"),
-					]);
-					setServices(servicesResponse.data);
-					setCars(carsResponse.data);
-				} catch (error) {
-					toast.error("Failed to fetch data. Please try again.");
-					console.error("Error fetching data:", error);
-				} finally {
-					setLoadingServices(false);
-					setLoadingCars(false);
-				}
-			};
-			fetchData();
-		} else {
-			setServices([]);
-			setCars([]);
-		}
-	}, [isSignedIn, axiosInstance]);
 
 	const handleAddService = () => {
 		setEditingService(null);
@@ -71,23 +37,7 @@ export default function Services() {
 		});
 
 		if (result.isConfirmed) {
-			try {
-				await axiosInstance.delete(`/services/${serviceId}`);
-				setServices((prev) =>
-					prev.filter((service) => service._id !== serviceId)
-				);
-				MySwal.fire(
-					"Deleted!",
-					"The service log has been removed.",
-					"success"
-				);
-			} catch (error) {
-				MySwal.fire(
-					"Error",
-					"Something went wrong while deleting.",
-					"error"
-				);
-			}
+			await useData().deleteService(serviceId);
 		}
 	};
 
@@ -100,7 +50,7 @@ export default function Services() {
 					</h2>
 					<button
 						onClick={handleAddService}
-						disabled={loadingServices || loadingCars}
+						disabled={loadingServices || loadingCars || !isSignedIn}
 						className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow transition-transform duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<FaWrench className="w-5 h-5" />
@@ -111,6 +61,12 @@ export default function Services() {
 				{loadingServices || loadingCars ? (
 					<div className="text-center text-slate-500 dark:text-slate-400 text-lg animate-pulse">
 						Loading service logs...
+					</div>
+				) : !isSignedIn ? (
+					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+						<p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
+							Please sign in to view service logs.
+						</p>
 					</div>
 				) : services.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-12 animate-fade-in">
@@ -145,45 +101,6 @@ export default function Services() {
 						service={editingService}
 						cars={cars}
 						settings={settings}
-						onSubmit={async (serviceData) => {
-							try {
-								if (editingService) {
-									const response = await axiosInstance.patch(
-										`/services/${editingService._id}`,
-										serviceData
-									);
-									setServices((prev) =>
-										prev.map((service) =>
-											service._id === editingService._id
-												? response.data
-												: service
-										)
-									);
-									toast.success(
-										"Service log updated successfully"
-									);
-								} else {
-									const response = await axiosInstance.post(
-										"/services",
-										serviceData
-									);
-									setServices((prev) => [
-										...prev,
-										response.data,
-									]);
-									toast.success(
-										"Service log added successfully"
-									);
-								}
-								setIsModalOpen(false);
-								setEditingService(null);
-							} catch (error) {
-								console.error("Error saving service:", error);
-								toast.error(
-									"Failed to save service log. Please try again."
-								);
-							}
-						}}
 						onClose={() => {
 							setIsModalOpen(false);
 							setEditingService(null);
