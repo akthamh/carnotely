@@ -24,7 +24,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 8000
+      PORT: 5000
       # Mongo connects to the "mongo" service inside the compose network
       MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/?authSource=admin
       DB_NAME: ${DB_NAME}
@@ -41,7 +41,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"     # expose the SPA + proxy on host port 80
+      - "8765:80"     # expose the SPA + proxy on host port 80
     networks: [app]
 
 volumes:
