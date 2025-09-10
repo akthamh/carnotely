@@ -172,7 +172,7 @@ export const deleteFuel = async (req, res) => {
 // 🔍 Get single fuel entry by ID
 export const getFuelById = async (req, res) => {
 	try {
-		const fuel = await findUserFuelById(req.params.id, req.user._id);
+		const fuel = await findUserFuelById(req.params.id, req.user.id);
 		if (!fuel) {
 			return res.status(404).json({ message: "Fuel not found" });
 		}
