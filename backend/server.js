@@ -1,6 +1,9 @@
 import express from "express";
 import { connectToDatabase } from "./config/db.js";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -16,7 +19,12 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
+app.set("trust proxy", 1); // required if behind nginx/proxy for correct IPs
 const port = process.env.PORT || 8000;
+
+
+// Security headers
+app.use(helmet());
 
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -26,37 +34,24 @@ const __dirname = dirname(__filename);
 app.use(express.json());
 
 // ✅ Fixed CORS configuration
-app.use(
-	cors({
-		origin: (origin, callback) => {
-			const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
-				.split(",")
-				.map((o) => o.trim())
-				.filter(Boolean);
+// removed
 
-			// ✅ Always allow your production frontend
-			allowedOrigins.push("https://car-notely.vercel.app");
+const allowedOrigins = [
+  ...(process.env.ALLOWED_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
+  ...(process.env.NODE_ENV === "development" ? ["http://localhost:5173","http://localhost:5174"] : []),
+];
+app.use(cors({
+  origin: (origin, cb) => (!origin || allowedOrigins.includes(origin)) ? cb(null, true) : cb(new Error(`Not allowed by CORS: ${origin}`)),
+  credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+}));
 
-			// ✅ Allow localhost in development
-			if (process.env.NODE_ENV === "development") {
-				allowedOrigins.push(
-					"http://localhost:5173",
-					"http://localhost:5174"
-				);
-			}
+// Basic rate limit on all routes (tune as needed)
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 1000 }));
 
-			if (!origin || allowedOrigins.includes(origin)) {
-				callback(null, true);
-			} else {
-				console.error("❌ Blocked by CORS:", origin);
-				callback(new Error(`Not allowed by CORS: ${origin}`));
-			}
-		},
-		credentials: true,
-		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-		allowedHeaders: ["Content-Type", "Authorization"],
-	})
-);
+// Clerk
+import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 
 // ✅ Clerk middleware
 app.use(ClerkExpressWithAuth());
