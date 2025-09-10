@@ -52,7 +52,7 @@ export const getCarById = async (req, res) => {
 		if (!mongoose.Types.ObjectId.isValid(carId)) {
 			return res.status(400).json({ message: "Invalid car ID" });
 		}
-		const car = await Car.findOne({ _id: carId, userId: req.user._id })
+		const car = await Car.findOne({ _id: carId, userId: req.user.id })
 			.select("-userId")
 			.lean();
 		if (!car) {
