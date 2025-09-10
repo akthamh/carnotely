@@ -27,9 +27,6 @@ const carSchema = new mongoose.Schema(
 			trim: true,
 		},
 		
-        // Ensure uniqueness per user
-        carSchema.index({ userId: 1, registrationNumber: 1 }, { unique: true });
-
 		vin: {
 			type: String,
 			trim: true,
@@ -46,6 +43,9 @@ const carSchema = new mongoose.Schema(
 		timestamps: true,
 	}
 );
+
+// Ensure uniqueness per user
+carSchema.index({ userId: 1, registrationNumber: 1 }, { unique: true });
 
 const Car = mongoose.model("Car", carSchema);
 export default Car;
