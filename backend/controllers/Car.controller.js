@@ -77,7 +77,7 @@ export const createCar = async (req, res) => {
 		}
 		const carData = {
 			...req.body,
-			userId: req.auth.userId, // or req.auth?.userId
+			userId: req.user.id, // or req.auth?.userId
 		};
 
 		const newCar = new Car(carData);
