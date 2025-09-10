@@ -23,10 +23,13 @@ const carSchema = new mongoose.Schema(
 		},
 		registrationNumber: {
 			type: String,
-			required: true,
-			unique: true,
+			required: true,			
 			trim: true,
 		},
+		
+        // Ensure uniqueness per user
+        carSchema.index({ userId: 1, registrationNumber: 1 }, { unique: true });
+
 		vin: {
 			type: String,
 			trim: true,
